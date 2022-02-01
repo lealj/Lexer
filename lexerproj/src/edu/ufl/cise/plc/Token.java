@@ -1,16 +1,26 @@
 package edu.ufl.cise.plc;
 
 public class Token implements IToken {
+	//(delete comment) high priority on get kind and get source for testing
 	//constructor
 	// not sure if should have line and column yet.
-	public Token(Kind kind, int startPos, int length, int line, int column) {
+	private Kind kind; 
+	private String src;
+	private int startPos, length, line, column; 
+	public Token(Kind kind, String src, int startPos, int length, int line, int column) {
 		// TODO Auto-generated constructor stub
+		this.kind = kind; 
+		this.src = src; 
+		this.startPos = startPos; 
+		this.length = length; 
+		this.line = line; 
+		this.column = column; 
 	}
 
 	@Override
 	public Kind getKind() {
 		// TODO Auto-generated method stub
-		return null;
+		return this.kind;
 	}
 
 	@Override
@@ -21,14 +31,12 @@ public class Token implements IToken {
 
 	@Override
 	public SourceLocation getSourceLocation() {
-		// TODO Auto-generated method stub
-		return null;
+		return new SourceLocation(line, column);
 	}
 
 	@Override
 	public int getIntValue() {
-		// TODO Auto-generated method stub
-		return 0;
+		return Integer.parseInt(src); 
 	}
 
 	@Override

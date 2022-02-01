@@ -10,7 +10,7 @@ import edu.ufl.cise.plc.IToken.Kind;
 
 public class LexerTests {
 
-	ILexer getLexer(String input){
+	ILexer getLexer(String input) {
 		 return CompilerComponentFactory.getLexer(input);
 	}
 	
@@ -180,5 +180,8 @@ public class LexerTests {
 			lexer.next();			
 		});
 	}
+	
+	// Personally created tests..............................................
+	
 
 }
