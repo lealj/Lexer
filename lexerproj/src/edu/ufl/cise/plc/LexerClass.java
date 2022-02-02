@@ -247,19 +247,19 @@ public class LexerClass implements ILexer{
 				}
 				
 				case HAVE_EQ->{
-					int startPos = pos-1;
-					col = 
+					//fix column for altered testequals
+					int startPos = pos-1; 
 					switch(c) {
 						case '='->{
 							kind = Kind.EQUALS; 
-							tokens.add(new Token(kind, src,startPos, 2, line, col));
+							tokens.add(new Token(kind, src,startPos, 2, line, startPos));
 							pos++;  
 							state = State.START; 
 						}
 						//if equal to case, we have "= "|"=\n"|etc., token.kind->assign
 						case ' ', '\t', '\n', '\r'->{
 							kind = Kind.ASSIGN; 
-							tokens.add(new Token(kind, src,startPos, 1, line, col));
+							tokens.add(new Token(kind, src,startPos, 1, line, startPos));
 							//reset state so to not get stuck in HAVE_EQ case. 
 							//no need to increment
 							state = State.START; 
