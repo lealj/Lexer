@@ -154,6 +154,22 @@ public class LexerTests {
 	}
 	
 	@Test
+	public void testEquals0ALTERED() throws LexicalException {
+		String input = """
+				=
+				==
+				===
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(),Kind.ASSIGN,0,0);
+		checkToken(lexer.next(),Kind.EQUALS,1,0);
+		checkToken(lexer.next(),Kind.EQUALS,2,0);
+		checkToken(lexer.next(),Kind.ASSIGN,2,2);
+		checkEOF(lexer.next());
+	}
+	
+	@Test
 	public void testIdenInt() throws LexicalException {
 		String input = """
 				a123 456b

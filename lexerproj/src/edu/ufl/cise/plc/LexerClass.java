@@ -13,7 +13,8 @@ public class LexerClass implements ILexer{
 	 * if the char is non-zero digit, continue reading until non-digit found
 	 * if the char is a letter, $, _, keep reading until next char is not a letter, digit, $, or _
 	 */
-	private enum State{START, IN_IDENT, HAVE_ZERO, HAVE_DOT, IN_FLOAT, IN_NUM, HAVE_EQ, HAVE_MINUS}
+	private enum State{START, IN_IDENT, HAVE_ZERO, HAVE_DOT, IN_FLOAT, IN_NUM, 
+			HAVE_EQ, HAVE_MINUS, HAVE_LARROW, HAVE_RARROW, HAVE_BANG}
 	private String _input; 
 	//make private
 	public List<Token> tokens; 
@@ -44,7 +45,7 @@ public class LexerClass implements ILexer{
 		int pos = 0, line = 0, col=0; 
 		State state = State.START;
 		//txt to send to token class to decode 
-		String src = ""; 
+		String src = "", colHelper = ""; 
 		int tokensSize = 0; 
 		while(true) {
 			//if token was added reset src string
@@ -56,8 +57,11 @@ public class LexerClass implements ILexer{
 				src = ""; 
 			}
 			char c = input_chars[pos]; 
+			colHelper += c; 
 			if(" \t\n\r".contains(String.valueOf(c)) == false)
+			{
 				src += c; 
+			}
 			Kind kind;
 			switch(state) {
 				case START->{
@@ -161,7 +165,7 @@ public class LexerClass implements ILexer{
 						//possibly more than one key
 						case '='->{
 							state = State.HAVE_EQ; 
-							pos++; col++;
+							pos++; 
 						}
 						//integer expected
 						case '1','2','3','4','5','6','7','8', '9'->{
@@ -174,16 +178,41 @@ public class LexerClass implements ILexer{
 							tokens.add(new Token(kind, src, startPos, 1, line, col));   
 							return tokens; 
 						}
+						default->{
+							if(Character.isJavaIdentifierStart(c))
+							{
+								
+							}
+						}
 					}
 				}
 				case IN_IDENT->{
 					
 				}
+				//test
 				case HAVE_ZERO->{
-					
+					int startPos = pos-1; 
+					switch(c)
+					{
+						case '.'->{
+							state = State.HAVE_DOT; 
+							pos++; 
+						}
+						default->{
+							kind = Kind.INT_LIT; 
+							tokens.add(new Token(kind, src, startPos, src.length(), line, pos));
+							state = State.START; 
+						}
+					}
 				}
+				//add default/ test
 				case HAVE_DOT->{
-					
+					switch(c)
+					{
+						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
+							state = State.IN_FLOAT; 
+						}
+					}
 				}
 				case IN_FLOAT->{
 					int tokenPos = pos; 
@@ -218,18 +247,19 @@ public class LexerClass implements ILexer{
 				}
 				
 				case HAVE_EQ->{
-					int startPos = pos-1;  
+					int startPos = pos-1;
+					col = 
 					switch(c) {
 						case '='->{
 							kind = Kind.EQUALS; 
-							tokens.add(new Token(kind, src,startPos, 2, line, startPos));
-							pos++; col++; 
+							tokens.add(new Token(kind, src,startPos, 2, line, col));
+							pos++;  
 							state = State.START; 
 						}
 						//if equal to case, we have "= "|"=\n"|etc., token.kind->assign
 						case ' ', '\t', '\n', '\r'->{
 							kind = Kind.ASSIGN; 
-							tokens.add(new Token(kind, src,startPos, 1, line, startPos));
+							tokens.add(new Token(kind, src,startPos, 1, line, col));
 							//reset state so to not get stuck in HAVE_EQ case. 
 							//no need to increment
 							state = State.START; 
@@ -237,8 +267,75 @@ public class LexerClass implements ILexer{
 						default->{throw new IllegalStateException("invalid char after '='");}
 					}
 				}
+				// test
 				case HAVE_MINUS->{
+					int startPos = pos-1; 
+					switch(c) {
+						case '>'-> kind = Kind.RARROW; 
+						
+						default -> kind = Kind.MINUS; 
+					}
 					
+					if(kind == Kind.RARROW)
+					{
+						pos++; 
+					}
+					tokens.add(new Token(kind, src, startPos, src.length(), line, pos));
+					state = State.START; 
+				}
+				// test
+				case HAVE_LARROW->{
+					int startPos = pos-1; 
+					switch(c) {
+						case '-'-> kind = Kind.LARROW;
+						
+						case '='-> kind = Kind.LE; 
+						
+						case '<'-> kind = Kind.LANGLE; 
+	
+						default -> kind = Kind.LT;
+					} 
+					
+					if(kind != Kind.LT)
+					{
+						pos++; 
+					}
+					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+					state = State.START; 
+				}
+				// test
+				case HAVE_RARROW->{
+					int startPos = pos-1; 
+					switch(c) {
+						case '='-> kind = Kind.GE; 
+						
+						case '>'-> kind = Kind.RANGLE; 
+	
+						default -> kind = Kind.GT;
+					} 
+					
+					if(kind != Kind.GT)
+					{
+						pos++; 
+					}
+					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+					state = State.START; 
+				}
+				//test
+				case HAVE_BANG->{
+					int startPos = pos-1; 
+					switch(c) {
+						case '='-> kind = Kind.NOT_EQUALS; 
+						
+						default -> kind = Kind.BANG; 
+					}
+					
+					if(kind == Kind.NOT_EQUALS)
+					{
+						pos++;  
+					}
+					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+					state = State.START;
 				}
 				default->{ throw new IllegalStateException("lexer bug");}
 			}
