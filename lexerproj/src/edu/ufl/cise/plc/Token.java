@@ -26,7 +26,7 @@ public class Token implements IToken {
 	@Override
 	public String getText() {
 		// TODO Auto-generated method stub
-		return null;
+		return src;
 	}
 
 	@Override
@@ -42,7 +42,7 @@ public class Token implements IToken {
 	@Override
 	public float getFloatValue() {
 		// TODO Auto-generated method stub
-		return 0;
+		return Float.parseFloat(src);
 	}
 
 	@Override

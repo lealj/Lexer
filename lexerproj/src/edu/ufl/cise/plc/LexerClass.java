@@ -186,7 +186,17 @@ public class LexerClass implements ILexer{
 					
 				}
 				case IN_FLOAT->{
-								
+					int tokenPos = pos; 
+					kind = Kind.FLOAT_LIT; 
+					switch(c) {
+						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
+							pos++; col++; 
+						}
+						default->{
+							tokens.add(new Token(kind, src,tokenPos, pos-tokenPos, line, col)); 
+							state = State.START; 
+						}
+					}			
 				}
 				
 				case IN_NUM->{
@@ -195,6 +205,10 @@ public class LexerClass implements ILexer{
 					switch(c) {
 						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
 							pos++; col++; 
+						}
+						case '.'->{
+							pos++; col++;
+							state = State.IN_FLOAT;
 						}
 						default->{
 							tokens.add(new Token(kind, src,tokenPos, pos-tokenPos, line, col)); 
