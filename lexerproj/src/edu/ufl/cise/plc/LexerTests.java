@@ -182,6 +182,17 @@ public class LexerTests {
 		checkEOF(lexer.next());
 		}
 	
+	@Test
+	public void testIdenIntAlter() throws LexicalException {
+		String input = """
+				456b
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkInt(lexer.next(), 456, 0,0);
+		checkIdent(lexer.next(), "b",0,3);
+		checkEOF(lexer.next());
+		}
 	
 	//example showing how to handle number that are too big.
 	@Test

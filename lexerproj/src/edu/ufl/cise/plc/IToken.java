@@ -6,10 +6,13 @@ public interface IToken {
 
 	public static enum Kind {
 		IDENT, 
+		
 		INT_LIT, 
 		FLOAT_LIT, 
+		
 		STRING_LIT, 
 		BOOLEAN_LIT,// 'true','false'
+		
 		LPAREN, // '('
 		RPAREN, // ')'
 		LSQUARE, // '['
@@ -21,6 +24,7 @@ public interface IToken {
 		TIMES,  // '*'
 		DIV,  //  '/'
 		MOD,  // '%'
+		
 		COLOR_CONST, // 'BLACK','BLUE','CYAN','DARK_GRAY','GRAY','GREEN','LIGHT_GRAY','MAGENTA','ORANGE','PINK',
 					// 'RED','WHITE','YELLOW'
 		KW_IF, // 'if'
@@ -28,6 +32,7 @@ public interface IToken {
 		KW_ELSE, //'else'
 		KW_WRITE, // 'write'
 		KW_CONSOLE, // 'console'
+		
 		AND, // '&'
 		OR,  // '|'
 		BANG, // '!'
@@ -37,15 +42,19 @@ public interface IToken {
 		NOT_EQUALS, // '!='
 		LE, //  '<='
 		GE, //  '>='
+		
 		TYPE, //int, float, string, boolean, color, image
 		COLOR_OP, //getRed, getGreen, getBlue
 		IMAGE_OP, //getWidth, getHeight
+		
 		SEMI, // ';'
 		COMMA, // ','
 		ASSIGN, // '='
 		RARROW, // '->'
 		LARROW, // '<-'
+		
 		KW_VOID, // 'void'
+		
 		RETURN,// '^'
 		EOF, // used as sentinal, does not correspond to input
 		ERROR, // use to avoid exceptions if scanning all input at once
