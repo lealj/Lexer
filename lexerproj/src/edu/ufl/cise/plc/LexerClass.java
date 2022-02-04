@@ -90,7 +90,7 @@ public class LexerClass implements ILexer{
 		int pos = 0, line = 0, col=0; 
 		State state = State.START;
 		//txt to send to token class to decode 
-		String src = "", colHelper = ""; 
+		String src = "", strSrc = ""; 
 		int tokensSize = 0; 
 		while(true) {
 			//if token was added reset src string
@@ -102,7 +102,7 @@ public class LexerClass implements ILexer{
 				src = ""; 
 			}
 			char c = input_chars[pos]; 
-			colHelper += c; 
+			strSrc += c; 
 			if(" \t\n\r".contains(String.valueOf(c)) == false)
 			{
 				src += c; 
@@ -257,13 +257,22 @@ public class LexerClass implements ILexer{
 					int startPos = col-1; 
 					switch (c) {
 						case '"'->{
-							kind = Kind.STRING_LIT; 
-							tokens.add(new Token(kind, src, 1, 1, line, col)); 
-							state = State.START;
+							if(_input.charAt(pos+1) != '"')
+							{
+								kind = Kind.STRING_LIT; 
+								Token t = new Token(kind, strSrc, 1, 1, line, col);
+								t.setText(_input); 
+								tokens.add(t); 
+								state = State.START;
+							}
+							
+							pos++; 
 						}
+						/*
 						case '\n','\r'->{
 							state = State.START; 
 						}
+						*/
 						default->{
 							pos++; 
 						}
@@ -275,8 +284,8 @@ public class LexerClass implements ILexer{
 					}
 					else {
 						//iterate through reserved word map
-						if(kindMap.containsKey("src")) {
-							kind = kindMap.get("src"); 
+						if(kindMap.containsKey(src) == true) {
+							kind = kindMap.get(src); 
 							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
 							state = State.START;
 							col += src.length(); 
@@ -356,7 +365,6 @@ public class LexerClass implements ILexer{
 								col += src.length(); 
 								src = ""; src += c; 
 								state = State.START; 
-								
 							}
 						}
 					}

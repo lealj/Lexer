@@ -5,7 +5,7 @@ public class Token implements IToken {
 	//constructor
 	// not sure if should have line and column yet.
 	private Kind kind; 
-	private String src;
+	private String src, text;
 	private int startPos, length, line, column; 
 	public Token(Kind kind, String src, int startPos, int length, int line, int column) {
 		// TODO Auto-generated constructor stub
@@ -19,13 +19,11 @@ public class Token implements IToken {
 
 	@Override
 	public Kind getKind() {
-		// TODO Auto-generated method stub
 		return this.kind;
 	}
 
 	@Override
 	public String getText() {
-		// TODO Auto-generated method stub
 		return src;
 	}
 
@@ -41,20 +39,62 @@ public class Token implements IToken {
 
 	@Override
 	public float getFloatValue() {
-		// TODO Auto-generated method stub
 		return Float.parseFloat(src);
 	}
 
 	@Override
 	public boolean getBooleanValue() {
-		// TODO Auto-generated method stub
+		if(src.equals("true"))
+			return true; 
 		return false;
 	}
 
 	@Override
 	public String getStringValue() {
-		// TODO Auto-generated method stub
-		return null;
+		String ret = ""; 
+		for(int i = 0; i < text.length()-1; i++)
+		{
+			char ch = text.charAt(i); 
+			char nxt = text.charAt(i+1); 
+			if(nxt == '0' && i == text.length()-3)
+			{
+				return ret; 
+			}
+			else if(ch == '\\')
+			{
+				switch(nxt) {
+					case 'b'->{
+						ret += "\b"; 
+					}
+					case 't'->{
+						ret += "\t"; 
+					}
+					case 'n'->{
+						ret += "\n"; 
+					}
+					case 'f'->{
+						ret += "\f"; 
+					}
+					case 'r'->{
+						ret += "\r"; 
+					}
+					default->{
+						ret += ch; 
+					}
+				}
+			}
+			else if (ch == ' ')
+			{
+				ret += ch; 
+			}
+			
+		}
+		return "-1"; 
 	}
-
+	
+	public void setText(String text) {
+		this.text = text; 
+	}
 }
+
+

@@ -3,6 +3,8 @@ package edu.ufl.cise.plc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 import edu.ufl.cise.plc.IToken.Kind;
@@ -137,7 +139,7 @@ public class LexerTests {
 		checkIdent(lexer.next(), "ghi", 2,5);
 		checkEOF(lexer.next());
 	}
-	
+
 	
 	@Test
 	public void testEquals0() throws LexicalException {
@@ -152,7 +154,36 @@ public class LexerTests {
 		checkToken(lexer.next(),Kind.ASSIGN,0,7);
 		checkEOF(lexer.next());
 	}
+
 	
+	@Test
+	public void testIdenInt() throws LexicalException {
+		String input = """
+				a123 456b
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkIdent(lexer.next(), "a123", 0,0);
+		checkInt(lexer.next(), 456, 0,5);
+		checkIdent(lexer.next(), "b",0,8);
+		checkEOF(lexer.next());
+		}
+
+	//example showing how to handle number that are too big.
+	@Test
+	public void testIntTooBig() throws LexicalException {
+		String input = """
+				42
+				99999999999999999999999999999999999999999999999999999999999999999999999
+				""";
+		ILexer lexer = getLexer(input);
+		checkInt(lexer.next(),42);
+		Exception e = assertThrows(LexicalException.class, () -> {
+			lexer.next();			
+		});
+	}
+	
+	// Personally created tests..............................................
 	@Test
 	public void testEquals0ALTERED() throws LexicalException {
 		String input = """
@@ -169,46 +200,32 @@ public class LexerTests {
 		checkEOF(lexer.next());
 	}
 	
-	@Test
-	public void testIdenInt() throws LexicalException {
-		String input = """
-				a123 456b
-				""";
-		show(input);
-		ILexer lexer = getLexer(input);
-		checkIdent(lexer.next(), "a123", 0,0);
-		checkInt(lexer.next(), 456, 0,5);
-		checkIdent(lexer.next(), "b",0,8);
-		checkEOF(lexer.next());
+	String getASCII(String s) {
+		int[] ascii = new int[s.length()];
+		for (int i = 0; i != s.length(); i++) {
+			ascii[i] = s.charAt(i);
 		}
-	
-	@Test
-	public void testIdenIntAlter() throws LexicalException {
-		String input = """
-				456b
-				""";
-		show(input);
-		ILexer lexer = getLexer(input);
-		checkInt(lexer.next(), 456, 0,0);
-		checkIdent(lexer.next(), "b",0,3);
-		checkEOF(lexer.next());
-		}
-	
-	//example showing how to handle number that are too big.
-	@Test
-	public void testIntTooBig() throws LexicalException {
-		String input = """
-				42
-				99999999999999999999999999999999999999999999999999999999999999999999999
-				""";
-		ILexer lexer = getLexer(input);
-		checkInt(lexer.next(),42);
-		Exception e = assertThrows(LexicalException.class, () -> {
-			lexer.next();			
-		});
+		return Arrays.toString(ascii);
 	}
-	
-	// Personally created tests..............................................
+	@Test
+	public void testEscapeSequences0() throws LexicalException {
+		String input = "\"\\b \\t \\n \\f \\r \"";
+		show(input);
+		show("input chars= " + getASCII(input));
+		ILexer lexer = getLexer(input);
+		IToken t = lexer.next();
+		String val = t.getStringValue();
+		show("getStringValueChars=     " + getASCII(val));
+		String expectedStringValue = "\b \t \n \f \r ";
+		show("expectedStringValueChars=" + getASCII(expectedStringValue));
+		assertEquals(expectedStringValue, val);
+		
+		String text = t.getText();
+		show("getTextChars=     " +getASCII(text));
+		String expectedText = "\"\\b \\t \\n \\f \\r \"";
+		show("expectedTextChars="+getASCII(expectedText));
+		assertEquals(expectedText,text);
+	}
 	
 
 }
