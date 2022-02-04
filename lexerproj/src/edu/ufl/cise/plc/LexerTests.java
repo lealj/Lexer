@@ -226,6 +226,60 @@ public class LexerTests {
 		show("expectedTextChars="+getASCII(expectedText));
 		assertEquals(expectedText,text);
 	}
+	@Test
+	public void testEscapeSequences1() throws LexicalException {
+		String input = "   \" ...  \\\"  \\\'  \\\\  \"";
+		show(input);
+		show("input chars= " + getASCII(input));
+		ILexer lexer = getLexer(input);
+		IToken t = lexer.next();
+		String val = t.getStringValue();
+		show("getStringValueChars=     " + getASCII(val));
+		String expectedStringValue = " ...  \"  \'  \\  ";
+		show("expectedStringValueChars=" + getASCII(expectedStringValue));
+		assertEquals(expectedStringValue, val);
+		
+		String text = t.getText();
+		show("getTextChars=     " +getASCII(text));
+		String expectedText = "\" ...  \\\"  \\\'  \\\\  \""; //almost the same as input, but white space is omitted
+		show("expectedTextChars="+getASCII(expectedText));
+		assertEquals(expectedText,text);		
+	}
+	
+	@Test
+    public void multiLineString() throws LexicalException{
+        String input = """
+                string a = "test
+                52";
+                a
+                """;
+        ILexer lexer = getLexer(input);
+        checkToken(lexer.next(), Kind.TYPE, 0, 0); //"string"
+        checkIdent(lexer.next(), "a", 0, 7);
+        checkToken(lexer.next(), Kind.ASSIGN, 0, 9);
+        
+        checkToken(lexer.next(), Kind.STRING_LIT, 0, 11); //"\"test\n52\""
+        checkToken(lexer.next(), Kind.SEMI, 1, 3);
+        checkIdent(lexer.next(), "a", 2, 0);
+    } 
+
+	@Test
+	void testBools() throws LexicalException {
+		String input = """
+				int x
+				boolean
+				true 
+				if
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(), Kind.TYPE, 0,0);
+		checkToken(lexer.next(), Kind.IDENT, 0,4);
+		checkToken(lexer.next(), Kind.TYPE, 1,0);
+		checkToken(lexer.next(), Kind.BOOLEAN_LIT, 2,0);
+		checkToken(lexer.next(), Kind.KW_IF, 3,0);
+		checkEOF(lexer.next());
+	}
 	
 
 }

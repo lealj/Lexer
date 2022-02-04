@@ -84,23 +84,30 @@ public class LexerClass implements ILexer{
 	}
 
 	private List<Token> assembleTokens(){
-		//int stuck = 0; 
-		//System.out.println("Printing...");
 		char[] input_chars = _input.toCharArray(); 
 		int pos = 0, line = 0, col=0; 
 		State state = State.START;
 		//txt to send to token class to decode 
 		String src = "", strSrc = ""; 
 		int tokensSize = 0; 
+		boolean newLine_inString = false; 
 		while(true) {
 			//if token was added reset src string
-			//System.out.println(stuck);
-			//stuck++; 
 			if(tokensSize < tokens.size())
 			{
 				tokensSize = tokens.size(); 
-				src = ""; 
+				src = "";  
+				if(newLine_inString == true)
+				{
+					int stringCol = tokens.get(tokens.size()-1).getSourceLocation().column(); 
+					int nl_pos = tokens.get(tokens.size()-1).getStringValue().indexOf('\n', stringCol);
+					col = pos - nl_pos; 
+					line++; 
+					newLine_inString = false; 
+				}
+				
 			}
+			
 			char c = input_chars[pos]; 
 			strSrc += c; 
 			if(" \t\n\r".contains(String.valueOf(c)) == false)
@@ -220,7 +227,6 @@ public class LexerClass implements ILexer{
 						case '1','2','3','4','5','6','7','8', '9'->{
 							state = State.IN_NUM; 
 							pos++;  
-							//System.out.println(src);
 						}
 						case '0'->{
 							state = State.HAVE_ZERO; 
@@ -257,7 +263,7 @@ public class LexerClass implements ILexer{
 					int startPos = col-1; 
 					switch (c) {
 						case '"'->{
-							if(_input.charAt(pos+1) != '"')
+							if(_input.charAt(pos+1) != '"' && _input.charAt(pos-1) != '\\')
 							{
 								kind = Kind.STRING_LIT; 
 								Token t = new Token(kind, strSrc, 1, 1, line, col);
@@ -268,12 +274,11 @@ public class LexerClass implements ILexer{
 							
 							pos++; 
 						}
-						/*
-						case '\n','\r'->{
-							state = State.START; 
+						case '\n'->{
+							newLine_inString = true;
+							pos++; 
 						}
-						*/
-						default->{
+						default->{ 
 							pos++; 
 						}
 					}
@@ -347,7 +352,6 @@ public class LexerClass implements ILexer{
 					kind = Kind.INT_LIT; 
 					switch(c) {
 						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
-							//System.out.println(c); 
 							pos++; 
 						}
 						case '.'->{

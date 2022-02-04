@@ -24,6 +24,12 @@ public class Token implements IToken {
 
 	@Override
 	public String getText() {
+		if(src.charAt(0) == ' ') {
+			while(src.charAt(0) == ' ')
+			{
+				src = src.substring(1, src.length()); 
+			}
+		}
 		return src;
 	}
 
@@ -44,7 +50,7 @@ public class Token implements IToken {
 
 	@Override
 	public boolean getBooleanValue() {
-		if(src.equals("true"))
+		if(src.equals("true") || src.equals("TRUE"))
 			return true; 
 		return false;
 	}
@@ -60,8 +66,17 @@ public class Token implements IToken {
 			{
 				return ret; 
 			}
+			if(ch == ' ' && i ==0)
+			{
+				while(ch == ' ')
+				{
+					i++; 
+					ch = text.charAt(i); 
+				}
+			}
 			else if(ch == '\\')
 			{
+				i++; 
 				switch(nxt) {
 					case 'b'->{
 						ret += "\b"; 
@@ -78,12 +93,24 @@ public class Token implements IToken {
 					case 'r'->{
 						ret += "\r"; 
 					}
+					case '.'->{
+						ret += "."; 
+					}
+					case '\\'->{
+						ret += "\\"; 
+					}
+					case '"'->{
+						ret += "\""; 
+					}
+					case '\''->{
+						ret += '\''; 
+					}
 					default->{
 						ret += ch; 
 					}
 				}
 			}
-			else if (ch == ' ')
+			else if(ch != '"') 
 			{
 				ret += ch; 
 			}
