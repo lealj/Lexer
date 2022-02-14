@@ -90,7 +90,8 @@ public class LexerClass implements ILexer{
 		//txt to send to token class to decode 
 		String src = "", strSrc = ""; 
 		int tokensSize = 0; 
-		boolean newLine_inString = false; 
+		boolean newLine_inString = false;
+		boolean inString = false; 
 		while(true) {
 			//if token was added reset src string
 			if(tokensSize < tokens.size())
@@ -107,10 +108,13 @@ public class LexerClass implements ILexer{
 				}
 				
 			}
-			
 			char c = input_chars[pos]; 
 			strSrc += c; 
 			if(" \t\n\r".contains(String.valueOf(c)) == false)
+			{
+				src += c;  
+			}
+			if(state == State.HAVE_STRING && c == ' ')
 			{
 				src += c; 
 			}
@@ -150,7 +154,7 @@ public class LexerClass implements ILexer{
 							pos++; col++;
 						}
 						case ']'->{
-							kind = Kind.RPAREN; 
+							kind = Kind.RSQUARE; 
 							tokens.add(new Token(kind, src, startPos, 1, line, col));   
 							pos++; col++;
 						}
@@ -217,11 +221,13 @@ public class LexerClass implements ILexer{
 						}
 						case '"'->{
 							state = State.HAVE_STRING; 
+							src = "\""; 
 							pos++;  
 						}
 						case '#'->
 						{
 							state = State.HAVE_COMMENT; 
+							pos++;
 						}
 						//integer expected
 						case '1','2','3','4','5','6','7','8', '9'->{
@@ -235,14 +241,13 @@ public class LexerClass implements ILexer{
 						default->{
 							if(Character.isJavaIdentifierStart(c))
 							{
-								state = State.IN_IDENT; 
-								pos++;  
+								state = State.IN_IDENT;  
 							}
 							else {
 								kind = Kind.ERROR; 
 								tokens.add(new Token(kind, src, 1, 1, line, col)); 
-								pos++; 
 							}
+							pos++;  
 						}
 					}
 				}
@@ -251,6 +256,7 @@ public class LexerClass implements ILexer{
 					switch (c)
 					{
 						case '\n','\r'->{
+							src = ""; 
 							state = State.START; 
 						}
 						default->{
@@ -261,15 +267,20 @@ public class LexerClass implements ILexer{
 				case HAVE_STRING->
 				{
 					int startPos = col-1; 
+					inString = true; 
 					switch (c) {
 						case '"'->{
 							if(_input.charAt(pos+1) != '"' && _input.charAt(pos-1) != '\\')
 							{
 								kind = Kind.STRING_LIT; 
 								Token t = new Token(kind, strSrc, 1, 1, line, col);
-								t.setText(_input); 
+								inString = false; 
+								t.setText(src); 
 								tokens.add(t); 
 								state = State.START;
+								System.out.println(src); 
+								System.out.println(src.length()); 
+								col += src.length(); 
 							}
 							
 							pos++; 
@@ -279,11 +290,27 @@ public class LexerClass implements ILexer{
 							pos++; 
 						}
 						default->{ 
+							if(strSrc.length() == _input.length()-3)
+							{
+								kind = Kind.ERROR; 
+								tokens.add(new Token(kind, strSrc, 0, 0, line, col));
+								state = State.START;
+								inString = false; 
+							}
 							pos++; 
 						}
 					}
 				}
 				case IN_IDENT->{ 
+					boolean charRemoved = false;
+					if(!Character.isJavaIdentifierPart(c) && c == src.charAt(src.length()-1))
+					{
+						if(c != '\\')
+						{
+							src = src.substring(0,src.length()-1); 
+							charRemoved = true; 
+						}
+					}
 					if(Character.isJavaIdentifierPart(c)) {
 						pos++; 
 					}
@@ -291,16 +318,24 @@ public class LexerClass implements ILexer{
 						//iterate through reserved word map
 						if(kindMap.containsKey(src) == true) {
 							kind = kindMap.get(src); 
+						}
+						else {
+							kind = Kind.IDENT; 
+						}
+						if(c != '\\')
+						{
+							if(src.contains("\\"))
+							{
+								kind = Kind.ERROR; 
+							}
 							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
 							state = State.START;
 							col += src.length(); 
 						}
 						else {
-							kind = Kind.IDENT; 
-							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
-							state = State.START;
-							col += src.length(); 
+							pos++; 
 						}
+							
 					}
 				}
 				//test
@@ -328,8 +363,14 @@ public class LexerClass implements ILexer{
 				case HAVE_DOT->{
 					switch(c)
 					{
-						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
+						case '0', '1', '2', '3', '4','5', '6', '7', '8', '9'->{
 							state = State.IN_FLOAT; 
+							pos++; 
+						}
+						default->{
+							kind = Kind.ERROR; 
+							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, pos));
+							state = State.START; 
 						}
 					}
 				}
@@ -339,7 +380,7 @@ public class LexerClass implements ILexer{
 					kind = Kind.FLOAT_LIT; 
 					switch(c) {
 						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
-							pos++; col++; 
+							pos++; 
 						}
 						default->{
 							tokens.add(new Token(kind, src,tokenPos, pos-tokenPos, line, col)); 
@@ -356,10 +397,11 @@ public class LexerClass implements ILexer{
 						}
 						case '.'->{
 							pos++; 
-							state = State.IN_FLOAT;
+							state = State.HAVE_DOT;
 						}
 						case ' ', '\t', '\n', '\r'->{
-							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, pos));
+							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
+							col += src.length(); 
 							state = State.START; 
 						}
 						default->{
@@ -379,16 +421,17 @@ public class LexerClass implements ILexer{
 					switch(c) {
 						case '='->{
 							kind = Kind.EQUALS; 
+							tokens.add(new Token(kind, src,startPos, src.length(), line, startPos));
+							state = State.START; 
 							pos++; col++; 
 						}
 						//if equal to case, we have "= "|"=\n"|etc., token.kind->assign
-						case ' ', '\t', '\n', '\r'->{
+						default->{
 							kind = Kind.ASSIGN; 
+							tokens.add(new Token(kind, src,startPos, src.length(), line, startPos));
+							state = State.START; 
 						}
-						default->{throw new IllegalStateException("invalid char after '='");}
 					}
-					tokens.add(new Token(kind, src,startPos, src.length(), line, startPos));
-					state = State.START; 
 				}
 				// test
 				case HAVE_MINUS->{
@@ -456,7 +499,9 @@ public class LexerClass implements ILexer{
 						
 						case ' ', '\t', '\n', '\r'-> kind = Kind.BANG; 
 						
-						default->{throw new IllegalStateException("invalid char after '!'");}
+						default->{
+							kind = Kind.BANG; 
+						}
 					}
 					
 					if(kind == Kind.NOT_EQUALS)
