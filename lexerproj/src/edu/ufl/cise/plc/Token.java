@@ -30,6 +30,7 @@ public class Token implements IToken {
 				src = src.substring(1, src.length()); 
 			}
 		}
+		
 		return src;
 	}
 
@@ -58,65 +59,56 @@ public class Token implements IToken {
 	@Override
 	public String getStringValue() {
 		String ret = ""; 
-		for(int i = 0; i < text.length()-1; i++)
+		if(src.charAt(0) == ' ')
 		{
-			char ch = text.charAt(i); 
-			char nxt = text.charAt(i+1); 
-			if(nxt == '0' && i == text.length()-3)
+			while(src.charAt(0) == ' ')
 			{
-				return ret; 
+				this.src = src.substring(1, src.length()); 
 			}
-			if(ch == ' ' && i ==0)
-			{
-				while(ch == ' ')
-				{
-					i++; 
-					ch = text.charAt(i); 
-				}
-			}
-			else if(ch == '\\')
-			{
-				i++; 
-				switch(nxt) {
-					case 'b'->{
-						ret += "\b"; 
-					}
-					case 't'->{
-						ret += "\t"; 
-					}
-					case 'n'->{
-						ret += "\n"; 
-					}
-					case 'f'->{
-						ret += "\f"; 
-					}
-					case 'r'->{
-						ret += "\r"; 
-					}
-					case '.'->{
-						ret += "."; 
-					}
-					case '\\'->{
-						ret += "\\"; 
-					}
-					case '"'->{
-						ret += "\""; 
-					}
-					case '\''->{
-						ret += '\''; 
-					}
-					default->{
-						ret += ch; 
-					}
-				}
-			}
-			else if(ch != '"') 
-			{
-				ret += ch; 
-			}
-			
 		}
-		return "-1"; 
+		System.out.println(src); 
+		for(int i = 0; i < src.length()-1; i++)
+		{
+			char c = src.charAt(i); 
+			System.out.println(ret); 
+			switch(c) {
+				case ' '->{
+					ret += " "; 
+				}
+				case '.'->{
+					ret+="."; 
+				}
+				case '\\'->{
+					switch(src.charAt(i+1)) {
+						case 't'->{
+							ret += "\t"; 
+						}
+						case 'b'->{
+							ret += "\b";
+						}
+						case 'n'->{
+							ret += "\n";
+						}
+						case 'f'->{
+							ret += "\f";
+						}
+						case 'r'->{
+							ret += "\r";
+						}
+						case '\"'->{
+							ret += "\""; 
+						}
+						case '\\'->{
+							ret += "\\"; 
+						}
+						case '\''->{
+							ret += "\'"; 
+						}
+					}
+				}
+			}
+		}
+		return ret; 
 	}
 	
 	public void setText(String text) {

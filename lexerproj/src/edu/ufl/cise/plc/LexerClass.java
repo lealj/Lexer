@@ -106,7 +106,6 @@ public class LexerClass implements ILexer{
 					line++; 
 					newLine_inString = false; 
 				}
-				
 			}
 			char c = input_chars[pos]; 
 			strSrc += c; 
@@ -275,18 +274,22 @@ public class LexerClass implements ILexer{
 								kind = Kind.STRING_LIT; 
 								Token t = new Token(kind, strSrc, 1, 1, line, col);
 								inString = false; 
-								t.setText(src); 
+								t.setText(strSrc); 
 								tokens.add(t); 
 								state = State.START;
-								System.out.println(src); 
-								System.out.println(src.length()); 
 								col += src.length(); 
+								pos++; 
+							}
+							else {
+								pos++; 
 							}
 							
-							pos++; 
 						}
 						case '\n'->{
 							newLine_inString = true;
+							pos++; 
+						}
+						case ' ', '\b', '\t', '\f'->{
 							pos++; 
 						}
 						default->{ 
