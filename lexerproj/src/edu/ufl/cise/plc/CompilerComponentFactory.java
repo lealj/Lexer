@@ -5,16 +5,13 @@ package edu.ufl.cise.plc;
 
 
 public class CompilerComponentFactory {
-	
+	public static IParser getParser(String input) 
+	{
+		return new Parser(input); 
+	}
 	//This method will be invoked to get an instance of your lexer.  
 	public static ILexer getLexer(String input){
-		//TODO:  modify this method so it returns an instance of your Lexer instead of throwing the exception.
-		//for example:  
-		      //return new Lexer(input); 
 		return new LexerClass(input); 
-		
-		//throw new UnsupportedOperationException(
-				//"CompilerComponentFactory must be modified to return an instance of your lexer");
 	}
 	
 }
