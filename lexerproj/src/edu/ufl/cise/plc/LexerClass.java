@@ -18,7 +18,7 @@ public class LexerClass implements ILexer{
 	private enum State{START, IN_IDENT, HAVE_ZERO, HAVE_DOT, IN_FLOAT, IN_NUM, 
 			HAVE_EQ, HAVE_MINUS, HAVE_LARROW, HAVE_RARROW, HAVE_BANG, HAVE_STRING, HAVE_COMMENT}
 	private String _input; 
-	private List<Token> tokens; 
+	public List<Token> tokens; 
 	private Map<String, Kind> kindMap; 
 	private int tokensIndex; 
 	public LexerClass(String input){
