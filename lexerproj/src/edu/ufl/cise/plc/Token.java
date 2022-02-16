@@ -67,7 +67,7 @@ public class Token implements IToken {
 			}
 		}
 		System.out.println(src); 
-		for(int i = 0; i < src.length()-1; i++)
+		for(int i = 0; i < src.length(); i++)
 		{
 			char c = src.charAt(i); 
 			System.out.println(ret); 
@@ -105,6 +105,12 @@ public class Token implements IToken {
 							ret += "\'"; 
 						}
 					}
+				}
+				case '\"'->{
+					continue; 
+				}
+				default->{
+					ret += c; 
 				}
 			}
 		}

@@ -1,13 +1,16 @@
 package edu.ufl.cise.plc.test;
 
 import static edu.ufl.cise.plc.IToken.Kind.AND;
+
 import static edu.ufl.cise.plc.IToken.Kind.BANG;
 import static edu.ufl.cise.plc.IToken.Kind.COLOR_OP;
 import static edu.ufl.cise.plc.IToken.Kind.MINUS;
 import static edu.ufl.cise.plc.IToken.Kind.PLUS;
 import static edu.ufl.cise.plc.IToken.Kind.TIMES;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

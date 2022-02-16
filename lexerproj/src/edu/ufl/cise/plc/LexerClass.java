@@ -216,7 +216,7 @@ public class LexerClass implements ILexer{
 						}
 						case '-'->{
 							state = State.HAVE_MINUS;  
-							pos++; col++;
+							pos++; 
 						}
 						case '"'->{
 							state = State.HAVE_STRING; 
@@ -443,14 +443,20 @@ public class LexerClass implements ILexer{
 						case '>'->{
 							kind = Kind.RARROW; 
 							pos++; col++; 
+							tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+							state = State.START; 
 						}
 						case ' ', '\t', '\n', '\r'->{
 							kind = Kind.MINUS; 
+							tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+							state = State.START; 
 						}
-						default->{throw new IllegalStateException("invalid char after '='");}
+						case '0','1','2','3','4','5','6','7','8','9'->{
+							kind = Kind.MINUS; 
+							tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
+							state = State.IN_NUM; 
+						}
 					}
-					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
-					state = State.START; 
 				}
 				// test
 				case HAVE_LARROW->{

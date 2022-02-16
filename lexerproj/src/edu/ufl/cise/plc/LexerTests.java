@@ -477,6 +477,17 @@ public class LexerTests {
 		checkToken(lexer.next(), Kind.INT_LIT, 0, 48);
 		checkEOF(lexer.next());
 	}
+	
+	@Test
+	void error14() throws LexicalException {
+		String input = """
+				"this is a string"
+				""";
+		//show(input);
+		ILexer lexer = getLexer(input);
+		System.out.println("ASDF" + lexer.next().getStringValue() + "ASDF"); 
+		checkEOF(lexer.next());
+	}
 
 
 }
