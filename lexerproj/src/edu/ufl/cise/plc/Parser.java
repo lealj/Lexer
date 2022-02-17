@@ -10,8 +10,10 @@ import edu.ufl.cise.plc.ast.Expr;
 import edu.ufl.cise.plc.ast.FloatLitExpr;
 import edu.ufl.cise.plc.ast.IdentExpr;
 import edu.ufl.cise.plc.ast.IntLitExpr;
+import edu.ufl.cise.plc.ast.PixelSelector;
 import edu.ufl.cise.plc.ast.StringLitExpr;
 import edu.ufl.cise.plc.ast.UnaryExpr;
+import edu.ufl.cise.plc.ast.UnaryExprPostfix;
 
 public class Parser implements IParser {
 	private int current = 0; 
@@ -60,7 +62,9 @@ public class Parser implements IParser {
 		return tokens.get(current-1); 
 	}
 
-
+	private IToken next() {
+		return tokens.get(current+1); 
+	}
 	private IToken peek() {
 		return tokens.get(current);
 	}
@@ -119,46 +123,56 @@ public class Parser implements IParser {
 	}
 
 	private Expr term() {
-		Expr expr = factor(); 
+		Expr e = factor(); 
 		IToken  firstToken = peek(); 
 		Kind[] kinds = {Kind.MINUS, Kind.PLUS}; 
 		while(match(kinds))
 		{
-			IToken op = tokens.get(current-1); 
+			IToken op = tokens.get(current-1);
 			Expr right = factor(); 
-			expr = new BinaryExpr(firstToken, expr, op, right); 
+			e = new BinaryExpr(firstToken, e, op, right); 
 		}
-		return expr; 
+		return e; 
 	}
 	
 	Expr factor() {
-		IToken firstToken = peek(); 
-		Expr e = null; 
-		if(firstToken.getKind() == Kind.INT_LIT) {
-			e = new IntLitExpr(firstToken); 
-			consume(); 
-		}
-		else if(firstToken.getKind() == (Kind.LPAREN))
-		{
-			consume(); 
-			e = expr(); 
-			Kind[] kinds = {Kind.RPAREN}; 
-			match(kinds); 
-		}
-		else {
-			error(); 
+		IToken first = peek(); 
+		Expr e = unary(); 
+		
+		Kind[] kinds = {Kind.DIV, Kind.TIMES};
+		while(match(kinds)) {
+			IToken op = tokens.get(current-1); 
+			Expr right = factor(); 
+			e = new BinaryExpr(first, null, op, right);
 		}
 		return e; 
 	}
 	
 	private Expr unary() {
-		IToken firstToken = peek(); 
+		IToken first = peek(); 
 		Kind[] kinds = {Kind.BANG, Kind.MINUS}; 
 		if(match(kinds)) {
 			IToken op = tokens.get(current-1); 
 			Expr right = unary(); 
-			return new UnaryExpr(firstToken, op, right); 
+			return new UnaryExpr(first, op, right); 
 		}
+		if(next().getKind() == Kind.LSQUARE) { 
+			Expr e = primary(); 
+			consume(); 
+			Expr x = primary(); 
+			consume(); 
+			Expr y = primary(); 
+			if(match(Kind.RSQUARE))
+			{
+				PixelSelector pix = new PixelSelector(first,x, y);
+				return new UnaryExprPostfix(first, e, pix); 
+			}
+			else {
+				//error -no right bracket
+			}
+			
+		}
+	
 		return primary(); 
 	}
 	
@@ -189,10 +203,10 @@ public class Parser implements IParser {
 		return null; 
 	}
 
-	//passing tests 0,1,2,3,4,5
+	//passing tests 0,1,2,3,4,5,6,7 //called term() for these passes
 	@SuppressWarnings("exports")
 	@Override
 	public ASTNode parse() throws PLCException {
-		return unary();
+		return term();
 	}
 }
