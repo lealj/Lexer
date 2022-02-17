@@ -6,6 +6,7 @@ import edu.ufl.cise.plc.IToken.Kind;
 import edu.ufl.cise.plc.ast.ASTNode;
 import edu.ufl.cise.plc.ast.BinaryExpr;
 import edu.ufl.cise.plc.ast.BooleanLitExpr;
+import edu.ufl.cise.plc.ast.ConditionalExpr;
 import edu.ufl.cise.plc.ast.Expr;
 import edu.ufl.cise.plc.ast.FloatLitExpr;
 import edu.ufl.cise.plc.ast.IdentExpr;
@@ -157,7 +158,7 @@ public class Parser implements IParser {
 	
 	private Expr unary() throws SyntaxException {
 		IToken first = peek(); 
-		Kind[] kinds = {Kind.BANG, Kind.MINUS}; 
+		Kind[] kinds = {Kind.BANG, Kind.MINUS, Kind.COLOR_OP}; 
 		if(match(kinds)) {
 			IToken op = tokens.get(current-1); 
 			Expr right = unary(); 
@@ -206,6 +207,19 @@ public class Parser implements IParser {
 			Expr expr = expr(); 
 			//consume(); 
 			return expr; 
+		}
+		if(match(Kind.KW_IF)) {
+			Expr condition,trueC,falseC;
+			condition = expr();
+			trueC = expr();
+			falseC = expr();
+			return new ConditionalExpr(first,condition,trueC,falseC);
+		}
+		if(match(Kind.KW_ELSE)) {
+			return expr();
+		}
+		if(match(Kind.KW_FI)) {
+			return expr();
 		}
 		error("unexpected token"); 
 		return null; 
