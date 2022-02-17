@@ -153,7 +153,7 @@ public class Parser implements IParser {
 	
 	private Expr unary() {
 		IToken firstToken = peek(); 
-		Kind[] kinds = {Kind.BANG, Kind.MINUS}; 
+		Kind[] kinds = {Kind.BANG, Kind.MINUS, Kind.COLOR_OP}; 
 		if(match(kinds)) {
 			IToken op = tokens.get(current-1); 
 			Expr right = unary(); 
