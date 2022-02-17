@@ -16,12 +16,12 @@ import edu.ufl.cise.plc.ast.UnaryExpr;
 public class Parser implements IParser {
 	private int current = 0; 
 	private List<Token> tokens; 
-	
+	//construct
 	public Parser(String input) {
 		LexerClass lexer = new LexerClass(input); 
 		this.tokens = lexer.tokens; 
 	}
-	
+	//helper functions
 	private boolean match(Kind[] kinds)
 	{
 		for(int i = 0; i < kinds.length; i++)
@@ -74,20 +74,37 @@ public class Parser implements IParser {
 		advance(); 
 	}
 	
-	//*****
-	Expr equality() {
-		Expr expr = comparison(); 
+	//main functions
+	@SuppressWarnings("exports")
+	public Expr expr() {
 		IToken firstToken = peek(); 
-		Kind[] kinds = {Kind.NOT_EQUALS, Kind.EQUALS}; 
-		while(match(kinds)) {
-			Token op = tokens.get(current-1); 
-			Expr right = comparison(); 
-			
-			expr = new BinaryExpr(firstToken, expr, op, right); 
+		Expr left = null; 
+		Expr right = null; 
+		left = term(); 
+		while(firstToken.getKind() == Kind.PLUS || firstToken.getKind() == Kind.MINUS)
+		{
+			IToken op = tokens.get(current-1); 
+			consume(); 
+			right = term(); 
+			left = new BinaryExpr(firstToken, left, op, right); 
 		}
-		return expr; 
+		return left; 
 	}
-	//****
+	
+	//*****
+		Expr equality() {
+			Expr expr = comparison(); 
+			IToken firstToken = peek(); 
+			Kind[] kinds = {Kind.NOT_EQUALS, Kind.EQUALS}; 
+			while(match(kinds)) {
+				Token op = tokens.get(current-1); 
+				Expr right = comparison(); 
+				
+				expr = new BinaryExpr(firstToken, expr, op, right); 
+			}
+			return expr; 
+		}
+	
 	private Expr comparison() {
 		Expr expr = term(); 
 		IToken firstToken = peek(); 
@@ -101,7 +118,19 @@ public class Parser implements IParser {
 		return expr;
 	}
 
-	//next 3 functions from slides
+	private Expr term() {
+		Expr expr = factor(); 
+		IToken  firstToken = peek(); 
+		Kind[] kinds = {Kind.MINUS, Kind.PLUS}; 
+		while(match(kinds))
+		{
+			IToken op = tokens.get(current-1); 
+			Expr right = factor(); 
+			expr = new BinaryExpr(firstToken, expr, op, right); 
+		}
+		return expr; 
+	}
+	
 	Expr factor() {
 		IToken firstToken = peek(); 
 		Expr e = null; 
@@ -120,35 +149,6 @@ public class Parser implements IParser {
 			error(); 
 		}
 		return e; 
-	}
-
-	@SuppressWarnings("exports")
-	public Expr expr() {
-		IToken firstToken = peek(); 
-		Expr left = null; 
-		Expr right = null; 
-		left = term(); 
-		while(firstToken.getKind() == Kind.PLUS || firstToken.getKind() == Kind.MINUS)
-		{
-			IToken op = tokens.get(current-1); 
-			consume(); 
-			right = term(); 
-			left = new BinaryExpr(firstToken, left, op, right); 
-		}
-		return left; 
-	}
-	//from book
-	private Expr term() {
-		Expr expr = factor(); 
-		IToken  firstToken = peek(); 
-		Kind[] kinds = {Kind.MINUS, Kind.PLUS}; 
-		while(match(kinds))
-		{
-			IToken op = tokens.get(current-1); 
-			Expr right = factor(); 
-			expr = new BinaryExpr(firstToken, expr, op, right); 
-		}
-		return expr; 
 	}
 	
 	private Expr unary() {
