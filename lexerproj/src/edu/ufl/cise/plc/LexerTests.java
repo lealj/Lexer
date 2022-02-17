@@ -489,5 +489,6 @@ public class LexerTests {
 		checkEOF(lexer.next());
 	}
 
+	
 
 }

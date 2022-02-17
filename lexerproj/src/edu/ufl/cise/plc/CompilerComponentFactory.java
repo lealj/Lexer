@@ -5,7 +5,7 @@ package edu.ufl.cise.plc;
 
 
 public class CompilerComponentFactory {
-	public static IParser getParser(String input) 
+	public static IParser getParser(String input) throws LexicalException 
 	{
 		return new Parser(input); 
 	}

@@ -201,20 +201,20 @@ class Assignment2StarterTests {
 		assertEquals(TIMES, ((BinaryExpr) ast).getOp().getKind());
 		Expr var8 = ((BinaryExpr) ast).getLeft();
 		assertThat("", var8, instanceOf(UnaryExprPostfix.class));
-		//Expr var9 = ((UnaryExprPostfix) var8).getExpr();
-		//assertThat("", var9, instanceOf(IdentExpr.class));
-		//assertEquals("a", var9.getText());
-		//PixelSelector var10 = ((UnaryExprPostfix) var8).getSelector();
-		//assertThat("", var10, instanceOf(PixelSelector.class));
-		//Expr var11 = ((PixelSelector) var10).getX();
-		//assertThat("", var11, instanceOf(IdentExpr.class));
-		//assertEquals("x", var11.getText());
-		//Expr var12 = ((PixelSelector) var10).getY();
-		//assertThat("", var12, instanceOf(IdentExpr.class));
-		//assertEquals("y", var12.getText());
-		//Expr var13 = ((BinaryExpr) ast).getRight();
-		//assertThat("", var13, instanceOf(IdentExpr.class));
-		//assertEquals("z", var13.getText());
+		Expr var9 = ((UnaryExprPostfix) var8).getExpr();
+		assertThat("", var9, instanceOf(IdentExpr.class));
+		assertEquals("a", var9.getText());
+		PixelSelector var10 = ((UnaryExprPostfix) var8).getSelector();
+		assertThat("", var10, instanceOf(PixelSelector.class));
+		Expr var11 = ((PixelSelector) var10).getX();
+		assertThat("", var11, instanceOf(IdentExpr.class));
+		assertEquals("x", var11.getText());
+		Expr var12 = ((PixelSelector) var10).getY();
+		assertThat("", var12, instanceOf(IdentExpr.class));
+		assertEquals("y", var12.getText());
+		Expr var13 = ((BinaryExpr) ast).getRight();
+		assertThat("", var13, instanceOf(IdentExpr.class));
+		assertEquals("z", var13.getText());
 	}
 
 	@DisplayName("test9")

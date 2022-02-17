@@ -18,10 +18,12 @@ import edu.ufl.cise.plc.ast.UnaryExprPostfix;
 public class Parser implements IParser {
 	private int current = 0; 
 	private List<Token> tokens; 
+	private LexerClass lexer; 
 	//construct
-	public Parser(String input) {
-		LexerClass lexer = new LexerClass(input); 
+	public Parser(String input) throws LexicalException {
+		lexer = new LexerClass(input); 
 		this.tokens = lexer.tokens; 
+		tokenError(); 
 	}
 	//helper functions
 	private boolean match(Kind[] kinds)
@@ -69,26 +71,32 @@ public class Parser implements IParser {
 		return tokens.get(current);
 	}
 
-	private void error() {
-		// TODO Auto-generated method stub
-		
+	private void error(String msg) throws SyntaxException {
+		throw new SyntaxException(msg); 
 	}
-
-	private void consume() {
-		advance(); 
+	//receives the kind that is expected. throws error if no match. 
+	private void consume(Kind kind, String msg) throws SyntaxException {
+		if(peek().getKind() == kind)
+		{
+			advance();
+		}
+		else {
+			error(msg); 
+		}
 	}
 	
 	//main functions
 	@SuppressWarnings("exports")
-	public Expr expr() {
+	public Expr expr() throws SyntaxException {
 		IToken firstToken = peek(); 
 		Expr left = null; 
 		Expr right = null; 
 		left = term(); 
-		while(firstToken.getKind() == Kind.PLUS || firstToken.getKind() == Kind.MINUS)
+		Kind[] kinds = {Kind.PLUS, Kind.MINUS}; 
+		while(match(kinds))
 		{
 			IToken op = tokens.get(current-1); 
-			consume(); 
+			//consume(); 
 			right = term(); 
 			left = new BinaryExpr(firstToken, left, op, right); 
 		}
@@ -96,7 +104,7 @@ public class Parser implements IParser {
 	}
 	
 	//*****
-		Expr equality() {
+		Expr equality() throws SyntaxException {
 			Expr expr = comparison(); 
 			IToken firstToken = peek(); 
 			Kind[] kinds = {Kind.NOT_EQUALS, Kind.EQUALS}; 
@@ -109,7 +117,7 @@ public class Parser implements IParser {
 			return expr; 
 		}
 	
-	private Expr comparison() {
+	private Expr comparison() throws SyntaxException {
 		Expr expr = term(); 
 		IToken firstToken = peek(); 
 		Kind[] kinds = {Kind.GT, Kind.GE, Kind.LT, Kind.LE}; 
@@ -122,7 +130,7 @@ public class Parser implements IParser {
 		return expr;
 	}
 
-	private Expr term() {
+	private Expr term() throws SyntaxException {
 		Expr e = factor(); 
 		IToken  firstToken = peek(); 
 		Kind[] kinds = {Kind.MINUS, Kind.PLUS}; 
@@ -135,20 +143,19 @@ public class Parser implements IParser {
 		return e; 
 	}
 	
-	Expr factor() {
+	Expr factor() throws SyntaxException {
 		IToken first = peek(); 
 		Expr e = unary(); 
-		
 		Kind[] kinds = {Kind.DIV, Kind.TIMES};
 		while(match(kinds)) {
 			IToken op = tokens.get(current-1); 
 			Expr right = factor(); 
-			e = new BinaryExpr(first, null, op, right);
+			e = new BinaryExpr(first, e, op, right);
 		}
 		return e; 
 	}
 	
-	private Expr unary() {
+	private Expr unary() throws SyntaxException {
 		IToken first = peek(); 
 		Kind[] kinds = {Kind.BANG, Kind.MINUS}; 
 		if(match(kinds)) {
@@ -157,10 +164,10 @@ public class Parser implements IParser {
 			return new UnaryExpr(first, op, right); 
 		}
 		if(next().getKind() == Kind.LSQUARE) { 
-			Expr e = primary(); 
-			consume(); 
+			Expr e = primary();
+			consume(Kind.LSQUARE, "LSQUARE EXPECT"); 
 			Expr x = primary(); 
-			consume(); 
+			consume(Kind.COMMA, "COMMA EXPECT"); 
 			Expr y = primary(); 
 			if(match(Kind.RSQUARE))
 			{
@@ -176,7 +183,7 @@ public class Parser implements IParser {
 		return primary(); 
 	}
 	
-	private Expr primary() {
+	private Expr primary() throws SyntaxException {
 		IToken first = peek(); 
 		if(match(Kind.BOOLEAN_LIT)) {
 			return new BooleanLitExpr(first); 
@@ -195,18 +202,28 @@ public class Parser implements IParser {
 			return new IdentExpr(first); 
 		}
 		if(match(Kind.LPAREN)) {
-			consume(); 
+			//consume(); 
 			Expr expr = expr(); 
-			consume(); 
+			//consume(); 
 			return expr; 
 		}
+		error("unexpected token"); 
 		return null; 
 	}
+	
+	public void tokenError() throws LexicalException{
+		for(int i = 0; i < tokens.size(); i++)
+		{
+			if(tokens.get(i).getKind() == Kind.ERROR) {
+				throw new LexicalException("lex exception"); 
+			}
+		}
+	}
 
-	//passing tests 0,1,2,3,4,5,6,7 //called term() for these passes
+	//passing tests 0,1,2,3,4,5,6,7,8,11,12,14 //called term() for these passes
 	@SuppressWarnings("exports")
 	@Override
 	public ASTNode parse() throws PLCException {
-		return term();
+		return expr();
 	}
 }
