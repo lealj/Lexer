@@ -90,6 +90,14 @@ public class Parser implements IParser {
 	@SuppressWarnings("exports")
 	public Expr expr() throws SyntaxException {
 		IToken firstToken = peek(); 
+		if(match(Kind.KW_IF)) {
+			return ifState(); 
+		}
+		if(match(Kind.AND) || match(Kind.OR))
+		{
+			return or(); 
+		}
+		
 		Expr left = null; 
 		Expr right = null; 
 		left = term(); 
@@ -104,19 +112,60 @@ public class Parser implements IParser {
 		return left; 
 	}
 	
-	//*****
-		Expr equality() throws SyntaxException {
-			Expr expr = comparison(); 
-			IToken firstToken = peek(); 
-			Kind[] kinds = {Kind.NOT_EQUALS, Kind.EQUALS}; 
-			while(match(kinds)) {
-				Token op = tokens.get(current-1); 
-				Expr right = comparison(); 
-				
-				expr = new BinaryExpr(firstToken, expr, op, right); 
-			}
-			return expr; 
+	private Expr ifState() throws SyntaxException{
+		IToken firstToken = peek(); 
+		consume(Kind.LPAREN, "lparen"); 
+		Expr condition = expr(); 
+		consume(Kind.RPAREN, "rparen"); 
+		Expr trueCase = expr();
+		Expr falseCase = null; 
+		if(match(Kind.KW_ELSE))
+		{
+			falseCase = expr(); 
 		}
+		
+		return new ConditionalExpr(firstToken, condition, trueCase, falseCase);
+	}
+	
+	private Expr or() throws SyntaxException{
+		IToken firstToken = peek(); 
+		Expr expr = and(); 
+		while(match(Kind.OR))
+		{
+			IToken op = tokens.get(current-1); 
+			Expr right = and(); 
+			expr = new BinaryExpr(firstToken, expr, op, right); 
+		}
+		return expr; 
+	}
+	
+	private Expr and() throws SyntaxException{
+		IToken firstToken = peek(); 
+		Expr expr = equality(); 
+		while(match(Kind.AND))
+		{
+			System.out.println("ASDF");
+			IToken op = tokens.get(current-1); 
+			Expr right = equality(); 
+			expr = new BinaryExpr(firstToken, expr, op, right); 
+			
+		}
+		return expr; 
+	}
+	
+	//*****
+	Expr equality() throws SyntaxException {
+		Expr expr = comparison(); 
+		IToken firstToken = peek(); 
+		Kind[] kinds = {Kind.NOT_EQUALS, Kind.EQUALS}; 
+		while(match(kinds)) {
+			Token op = tokens.get(current-1); 
+			Expr right = comparison(); 
+			
+			expr = new BinaryExpr(firstToken, expr, op, right); 
+		}
+		return expr; 
+	}
 	
 	private Expr comparison() throws SyntaxException {
 		Expr expr = term(); 
@@ -203,17 +252,8 @@ public class Parser implements IParser {
 			return new IdentExpr(first); 
 		}
 		if(match(Kind.LPAREN)) {
-			//consume(); 
 			Expr expr = expr(); 
-			//consume(); 
 			return expr; 
-		}
-		if(match(Kind.KW_IF)) {
-			Expr condition,trueC,falseC;
-			condition = expr();
-			trueC = expr();
-			falseC = expr();
-			return new ConditionalExpr(first,condition,trueC,falseC);
 		}
 		if(match(Kind.KW_ELSE)) {
 			return expr();
