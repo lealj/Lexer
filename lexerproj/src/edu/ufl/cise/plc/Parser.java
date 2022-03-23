@@ -1,20 +1,30 @@
 package edu.ufl.cise.plc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.ufl.cise.plc.IToken.Kind;
 import edu.ufl.cise.plc.ast.ASTNode;
 import edu.ufl.cise.plc.ast.BinaryExpr;
 import edu.ufl.cise.plc.ast.BooleanLitExpr;
+import edu.ufl.cise.plc.ast.ColorExpr;
 import edu.ufl.cise.plc.ast.ConditionalExpr;
+import edu.ufl.cise.plc.ast.ConsoleExpr;
+import edu.ufl.cise.plc.ast.Dimension;
 import edu.ufl.cise.plc.ast.Expr;
 import edu.ufl.cise.plc.ast.FloatLitExpr;
 import edu.ufl.cise.plc.ast.IdentExpr;
 import edu.ufl.cise.plc.ast.IntLitExpr;
+import edu.ufl.cise.plc.ast.NameDef;
+import edu.ufl.cise.plc.ast.NameDefWithDim;
 import edu.ufl.cise.plc.ast.PixelSelector;
+import edu.ufl.cise.plc.ast.Program;
 import edu.ufl.cise.plc.ast.StringLitExpr;
+import edu.ufl.cise.plc.ast.Types.Type;
 import edu.ufl.cise.plc.ast.UnaryExpr;
 import edu.ufl.cise.plc.ast.UnaryExprPostfix;
+import edu.ufl.cise.plc.ast.VarDeclaration;
+import edu.ufl.cise.plc.ast.ColorConstExpr;
 
 public class Parser implements IParser {
 	private int current = 0; 
@@ -68,6 +78,7 @@ public class Parser implements IParser {
 	private IToken next() {
 		return tokens.get(current+1); 
 	}
+	
 	private IToken peek() {
 		return tokens.get(current);
 	}
@@ -86,6 +97,123 @@ public class Parser implements IParser {
 		}
 	}
 	
+	/* Currently passing 0-6*/
+	////////////////////////////////////////////////////////////////////////////////
+	private Program prog() throws SyntaxException {
+		IToken first = peek(); 
+		Type type = null; 
+		String name = null; 
+		List<NameDef> params = new ArrayList<>(); 
+		List<ASTNode> decsAndStmts = new ArrayList<>(); 
+		if(match(Kind.TYPE) || match(Kind.KW_VOID))
+		{
+			type = Type.toType(tokens.get(current-1).getText()); 
+			
+			if(peek().getKind() == Kind.IDENT)
+			{
+				name = peek().getStringValue(); 
+			}
+			consume(Kind.IDENT, "prog ident"); 
+			
+			if(match(Kind.LPAREN))
+			{
+				//checks for ()
+				if(peek().getKind() != Kind.RPAREN) {
+					while(peek().getKind() != Kind.RPAREN || peek().getKind() != Kind.EOF)
+					{
+						NameDef nameDef = nameDef(); 
+						if(peek().getKind() == Kind.COMMA || peek().getKind() == Kind.RPAREN)
+						{
+							params.add(nameDef); 
+							if(peek().getKind() == Kind.COMMA)
+							{
+								consume(Kind.COMMA, "comma"); 
+							}
+							else if(peek().getKind() == Kind.RPAREN)
+							{
+								consume(Kind.RPAREN, "r paren"); 
+								break; 
+							}
+						}
+					}
+				}
+				else {
+					consume(Kind.RPAREN, "r paren2"); 
+				}
+			}
+			//declarations and statements
+			while(peek().getKind() == Kind.TYPE && (next().getKind() == Kind.IDENT || next().getKind()==Kind.LSQUARE))
+			{
+				VarDeclaration varDec = varDec(); 
+				decsAndStmts.add(varDec);
+			}
+		}
+		return new Program(first, type, name, params, decsAndStmts);
+	}
+	/////
+	private NameDef nameDef() throws SyntaxException {
+		IToken first = peek(); 
+		String type = null; 
+		String name = null; 
+		boolean image_op = false; 
+		//match int, boolean, float, etc. 
+		if(match(Kind.TYPE)) {
+			type = tokens.get(current-1).getStringValue(); 
+			//in case of image operation [1,2]
+			Dimension dim = null; 
+			if(match(Kind.LSQUARE))
+			{
+				image_op = true; 
+				dim = dim(); 
+			}
+			name = peek().getStringValue(); 
+			if(peek().getKind() == Kind.IDENT)
+			{
+				consume(Kind.IDENT, "ident loop"); 
+			}
+			if(image_op)
+			{
+				return new NameDefWithDim(first, type, name, dim);
+			}
+
+		}
+		return new NameDef(first, type, name); 
+	}
+	
+	private VarDeclaration varDec() throws SyntaxException {
+		IToken first = peek(); 
+		IToken op =null;
+		Expr expr=null;
+		NameDef nd=null; 
+		if(peek().getKind()==Kind.TYPE) {
+			nd = nameDef();
+			if(match(Kind.ASSIGN)||match(Kind.LARROW))
+			{
+				op = tokens.get(current-1); 
+				expr = expr(); 
+				if(peek().getKind() == Kind.SEMI)
+				{
+					consume(Kind.SEMI, "expect ;");
+				}
+			}
+		}
+		if(peek().getKind() == Kind.SEMI)
+		{
+			consume(Kind.SEMI, "expect ;");
+		}
+		//set op/expr null if... ? 
+		return new VarDeclaration(first, nd, op, expr); 
+	}
+	
+	private Dimension dim() throws SyntaxException {
+		IToken first = peek(); 
+		Expr width = expr(); 
+		consume(Kind.COMMA, "comma expect"); 
+		Expr height = expr(); 
+		consume(Kind.RSQUARE, "r - square"); 
+		return new Dimension(first, width, height);
+	}
+	//////////////////////////////////////////////////////////////////////
 	//main functions
 	@SuppressWarnings("exports")
 	public Expr expr() throws SyntaxException {
@@ -144,7 +272,7 @@ public class Parser implements IParser {
 		Expr expr = equality(); 
 		while(match(Kind.AND))
 		{
-			System.out.println("ASDF");
+			
 			IToken op = tokens.get(current-1); 
 			Expr right = equality(); 
 			expr = new BinaryExpr(firstToken, expr, op, right); 
@@ -251,15 +379,36 @@ public class Parser implements IParser {
 		if(match(Kind.IDENT)) {
 			return new IdentExpr(first); 
 		}
+		if(match(Kind.COLOR_CONST))
+		{
+			return new ColorConstExpr(first); 
+		}
+		if(match(Kind.LANGLE))
+		{
+			Expr r = expr(); 
+			consume(Kind.COMMA, "comaColor");
+			Expr g = expr(); 
+			consume(Kind.COMMA, "comaColor");
+			Expr b = expr(); 
+			consume(Kind.RANGLE, "rangle");
+			return new ColorExpr(first, r, g, b); 
+		}
+		if(match(Kind.KW_CONSOLE))
+		{
+			return new ConsoleExpr(first); 
+		}
 		if(match(Kind.LPAREN)) {
-			Expr expr = expr(); 
-			return expr; 
+			return expr(); 
 		}
 		if(match(Kind.KW_ELSE)) {
 			return expr();
 		}
 		if(match(Kind.KW_FI)) {
 			return expr();
+		}
+		if(match(Kind.SEMI))
+		{
+			return null; 
 		}
 		error("unexpected token"); 
 		return null; 
@@ -278,6 +427,6 @@ public class Parser implements IParser {
 	@SuppressWarnings("exports")
 	@Override
 	public ASTNode parse() throws PLCException {
-		return expr();
+		return prog();
 	}
 }

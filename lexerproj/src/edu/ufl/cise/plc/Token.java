@@ -41,11 +41,31 @@ public class Token implements IToken {
 
 	@Override
 	public int getIntValue() {
+		try {
+			Integer.parseInt(src); 
+		}
+		catch(NumberFormatException e)
+		{
+			if(Character.isDigit(src.charAt(src.length()-1)) == false)
+			{
+				src = src.substring(0, src.length()-1); 
+			}
+		}
 		return Integer.parseInt(src); 
 	}
 
 	@Override
 	public float getFloatValue() {
+		try {
+			Float.parseFloat(src); 
+		}
+		catch(NumberFormatException e)
+		{
+			if(Character.isDigit(src.charAt(src.length()-1)) == false)
+			{
+				src = src.substring(0, src.length()-1); 
+			}
+		}
 		return Float.parseFloat(src);
 	}
 
@@ -66,11 +86,9 @@ public class Token implements IToken {
 				this.src = src.substring(1, src.length()); 
 			}
 		}
-		System.out.println(src); 
 		for(int i = 0; i < src.length(); i++)
 		{
 			char c = src.charAt(i); 
-			System.out.println(ret); 
 			switch(c) {
 				case ' '->{
 					ret += " "; 
@@ -114,6 +132,12 @@ public class Token implements IToken {
 				}
 			}
 		}
+		int ind = ret.length()-1; 
+		if(ret.charAt(ind) == ')' || ret.charAt(ind) == ';' || ret.charAt(ind)==',')
+		{
+			ret = ret.substring(0, ret.length()-1); 
+		}
+		
 		return ret; 
 	}
 	
