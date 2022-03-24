@@ -244,6 +244,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		//this may not be correct
 		Type targType = dec.getType(); 
 		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		
 		if(targType != Type.IMAGE)
 		{
 			//could be != null, am slepe deprived. shouldn't have selector on lhs
@@ -256,8 +257,39 @@ public class TypeCheckVisitor implements ASTVisitor {
 			{
 				check(assignCompatible(targType, exprType), assignmentStatement, "incompatible"
 						+ " (image -no selector"); 
+				if(exprType == Type.INT) 
+				{
+					assignmentStatement.getExpr().setCoerceTo(COLOR); 
+				}
+				else if(exprType == Type.FLOAT)
+				{
+					assignmentStatement.getExpr().setCoerceTo(COLORFLOAT);
+				}
 			}
+			else 
+			{
+				Type xType = assignmentStatement.getSelector().getX().getType(); 
+				//check that lhs isn't declared in symbolTable
+				boolean inserted = symbolTable.insert(name, dec);
+				check(inserted, dec, "lhs" + name + "already declared");
+				//check that lhs is IdentExpr/type int
+				check(xType == Type.INT, assignmentStatement, "lhs not int"); 
+				Type yType = assignmentStatement.getSelector().getY().getType();
+				//check that rhs is color, colorfloat, float, int, and coerced to color 
+				switch(yType)
+				{
+					case COLOR, COLORFLOAT, FLOAT, INT->{
+						assignmentStatement.getExpr().setCoerceTo(COLOR); 
+					}
+					default->{
+						throw new TypeCheckException(
+							"image w/ selector", 
+							assignmentStatement.getFirstToken().getSourceLoc()) ;
+						}
+					}
+				}
 		}
+		return null; 
 	}
 
 
@@ -327,17 +359,27 @@ public class TypeCheckVisitor implements ASTVisitor {
 		boolean inserted = symbolTable.insert(name,declaration);
 		check(inserted, declaration, "variable " + name + "already declared");
 		
-		Expr initializer = declaration.;
+		Expr init = declaration.getExpr();
 		
-		if (initializer != null) {
+		if (init != null) {
 			//infer type of initializer
-			Type initializerType = (Type) initializer.visit(this,arg);
-			check(assignmentCompatible(declaration.getType(), initializerType),declaration, 
-			"type of expression and declared type do not match");
-			declaration.setAssigned(true);
+			Type initType = (Type) init.visit(this,arg);
+			//if varDec has assign init, rhs -> assignmentStmt compatible rules
+			if(declaration.getOp().getText() == "=")
+			{
+				check(assignCompatible(declaration.getType(), initType), declaration, 
+						"type of expression and declared type do not match");
+				declaration.setInitialized(true);
+			}
+			//if varDec has read init, rhs -> readStmt compatible rules
+			if(declaration.getOp().getText() == "<-")
+			{
+				check(initType == Type.CONSOLE || init.getType() == Type.STRING, declaration, "not console"); 
+				declaration.setInitialized(true);
+			}
+			
 		}
 		return null;
-		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
 
@@ -360,7 +402,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
-		//TODO:  implement this method
+		
 		throw new UnsupportedOperationException();
 	}
 
