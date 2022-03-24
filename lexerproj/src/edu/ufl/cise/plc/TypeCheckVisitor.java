@@ -51,36 +51,42 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//The type of a BooleanLitExpr is always BOOLEAN.  
 	//Set the type in AST Node for later passes (code generation)
 	//Return the type for convenience in this visitor.  
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitBooleanLitExpr(BooleanLitExpr booleanLitExpr, Object arg) throws Exception {
 		booleanLitExpr.setType(Type.BOOLEAN);
 		return Type.BOOLEAN;
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
-		//TODO:  implement this method
+		stringLitExpr.setType(Type.STRING);
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
-
+	
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitIntLitExpr(IntLitExpr intLitExpr, Object arg) throws Exception {
-		//TODO:  implement this method
+		intLitExpr.setType(Type.INT);
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitFloatLitExpr(FloatLitExpr floatLitExpr, Object arg) throws Exception {
 		floatLitExpr.setType(Type.FLOAT);
 		return Type.FLOAT;
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-		//TODO:  implement this method
+		colorConstExpr.setType(Type.COLOR);
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitConsoleExpr(ConsoleExpr consoleExpr, Object arg) throws Exception {
 		consoleExpr.setType(Type.CONSOLE);
@@ -100,8 +106,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		colorExpr.setType(exprType);
 		return exprType;
 	}	
-
-	
 	
 	//Maps forms a lookup table that maps an operator expression pair into result type.  
 	//This more convenient than a long chain of if-else statements. 
@@ -136,28 +140,87 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//This method has several cases. Work incrementally and test as you go. 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
-		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		Kind op = binaryExpr.getOp().getKind();
+		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
+		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
+		Type resultType = null;
+		
+		switch(op) {//AND, OR, PLUS, MINUS, TIMES, DIV, MOD, EQUALS, NOT_EQUALS, LT, LE, GT,GE 
+			case EQUALS,NOT_EQUALS -> {
+				check(leftType == rightType, binaryExpr, "incompatible types for comparison");
+				resultType = Type.BOOLEAN;
+			}
+			case PLUS -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
+				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case  MINUS -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case TIMES -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case DIV -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case LT, LE, GT, GE -> {
+				if (leftType == rightType) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			default -> {
+				throw new Exception("compiler error");
+			}
+		}
+		binaryExpr.setType(resultType);
+		return resultType;
 	}
 
 	@Override
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
-		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		String name = identExpr.getText(); 
+		Declaration dec = symbolTable.lookup(name); 
+		//check if defined
+		check(dec != null, identExpr, "undef ident " + name); 
+		//check if initialized
+		check(dec.isInitialized(), identExpr, "using uninitialized var"); 
+		
+		identExpr.setDec(dec);
+		Type type = dec.getType();
+		identExpr.setType(type);
+		return type; 
 	}
 
 	@Override
 	public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws Exception {
-		//TODO  implement this method
-		throw new UnsupportedOperationException();
+		Type condType = conditionalExpr.getCondition().getType(); 
+		check(condType != Type.BOOLEAN, conditionalExpr, "condition not boolean"); 
+		
+		Type trueCaseType = conditionalExpr.getTrueCase().getType(); 
+		Type falseCaseType = conditionalExpr.getFalseCase().getType(); 
+		check(trueCaseType == falseCaseType, conditionalExpr, "true type != false type"); 
+		
+		return trueCaseType; 
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
-		//TODO  implement this method
-		throw new UnsupportedOperationException();
+		Type x = dimension.getHeight().getType(); 
+		Type y = dimension.getWidth().getType(); 
+		
+		check(x != Type.INT, dimension, "x != int"); 
+		check(y != Type.INT, dimension, "y != int"); 
+		return x; 
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	//This method can only be used to check PixelSelector objects on the right hand side of an assignment. 
 	//Either modify to pass in context info and add code to handle both cases, or when on left side
@@ -165,43 +228,120 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws Exception {
 		Type xType = (Type) pixelSelector.getX().visit(this, arg);
 		check(xType == Type.INT, pixelSelector.getX(), "only ints as pixel selector components");
+		
 		Type yType = (Type) pixelSelector.getY().visit(this, arg);
 		check(yType == Type.INT, pixelSelector.getY(), "only ints as pixel selector components");
 		return null;
 	}
-
+	
+	@SuppressWarnings("exports")
 	@Override
 	//This method several cases--you don't have to implement them all at once.
 	//Work incrementally and systematically, testing as you go.  
 	public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg) throws Exception {
-		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		String name = assignmentStatement.getName(); 
+		Declaration dec = symbolTable.lookup(name); 
+		//this may not be correct
+		Type targType = dec.getType(); 
+		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		if(targType != Type.IMAGE)
+		{
+			//could be != null, am slepe deprived. shouldn't have selector on lhs
+			check(assignmentStatement.getSelector() == null, assignmentStatement, "has selector"); 
+			check(assignCompatible(targType, exprType), assignmentStatement, "incompatible"
+					+ " !image"); 
+		}
+		else {
+			if(assignmentStatement.getSelector() == null)
+			{
+				check(assignCompatible(targType, exprType), assignmentStatement, "incompatible"
+						+ " (image -no selector"); 
+			}
+		}
 	}
 
 
+	private boolean assignCompatible(Type targType, Type exprType) {
+		switch(targType){
+			case INT->{
+				switch(exprType) {
+					case FLOAT, COLOR, INT->{return true;}
+					default->{return false;}
+				}
+			}
+			case FLOAT->{
+				switch(exprType) {
+					case FLOAT, INT->{return true;}
+					default->{return false;}
+				}
+			}
+			case COLOR->{
+				switch(exprType) {
+					case COLOR, INT->{return true;}
+					default->{return false;}
+				}
+			}
+			case IMAGE->{
+				switch(exprType) {
+					case COLOR, COLORFLOAT->{
+						return true; 
+					}
+					default->{return false;}
+				}
+			}
+			default ->{return false;}
+		}
+	}
+
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws Exception {
 		Type sourceType = (Type) writeStatement.getSource().visit(this, arg);
 		Type destType = (Type) writeStatement.getDest().visit(this, arg);
+		
 		check(destType == Type.STRING || destType == Type.CONSOLE, writeStatement,
 				"illegal destination type for write");
 		check(sourceType != Type.CONSOLE, writeStatement, "illegal source type for write");
 		return null;
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
-		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		String name = readStatement.getName(); 
+		Declaration dec = symbolTable.lookup(name); 
+		check(dec != null, readStatement, "undeclared var " + name); 
+		check(readStatement.getSelector() == null, readStatement, "has pix selector");
+		
+		Type exprType = (Type) readStatement.getSource().visit(this,arg);
+		//check(dec.getType() != exprType, readStatement, "incompatible");
+		check(exprType == Type.CONSOLE || exprType == Type.STRING, readStatement, "not console"); 
+		dec.setInitialized(true);
+		return null; 
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
-		//TODO:  implement this method
+		String name = declaration.getName();
+		boolean inserted = symbolTable.insert(name,declaration);
+		check(inserted, declaration, "variable " + name + "already declared");
+		
+		Expr initializer = declaration.;
+		
+		if (initializer != null) {
+			//infer type of initializer
+			Type initializerType = (Type) initializer.visit(this,arg);
+			check(assignmentCompatible(declaration.getType(), initializerType),declaration, 
+			"type of expression and declared type do not match");
+			declaration.setAssigned(true);
+		}
+		return null;
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitProgram(Program program, Object arg) throws Exception {		
 		//TODO:  this method is incomplete, finish it.  
@@ -217,18 +357,21 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return program;
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
 		//TODO:  implement this method
 		throw new UnsupportedOperationException();
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
 		//TODO:  implement this method
 		throw new UnsupportedOperationException();
 	}
  
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitReturnStatement(ReturnStatement returnStatement, Object arg) throws Exception {
 		Type returnType = root.getReturnType();  //This is why we save program in visitProgram.
@@ -237,6 +380,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 
+	@SuppressWarnings("exports")
 	@Override
 	public Object visitUnaryExprPostfix(UnaryExprPostfix unaryExprPostfix, Object arg) throws Exception {
 		Type expType = (Type) unaryExprPostfix.getExpr().visit(this, arg);
