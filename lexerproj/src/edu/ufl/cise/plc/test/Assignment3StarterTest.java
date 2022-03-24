@@ -489,7 +489,7 @@ class Assignment3StarterTest {
 		assertEquals("this is a url", ((StringLitExpr) var14).getValue());
 		assertEquals(LARROW, ((VarDeclaration) var9).getOp().getKind());
 	}
-	/*
+	
 	@DisplayName("test10")
 	@Test
 	public void test10(TestInfo testInfo) throws Exception {
@@ -513,7 +513,7 @@ class Assignment3StarterTest {
 		assertThat("", var1, instanceOf(IntLitExpr.class));
 		assertEquals(0, ((IntLitExpr) var1).getValue());
 	}
-
+	
 	@DisplayName("test11")
 	@Test
 	public void test11(TestInfo testInfo) throws Exception {
@@ -578,6 +578,8 @@ class Assignment3StarterTest {
 		Expr var5 = ((BinaryExpr) var4).getLeft();
 		assertThat("", var5, instanceOf(IdentExpr.class));
 		assertEquals("a", var5.getText());
+		
+		
 		Expr var6 = ((BinaryExpr) var4).getRight();
 		assertThat("", var6, instanceOf(IdentExpr.class));
 		assertEquals("b", var6.getText());
@@ -594,7 +596,7 @@ class Assignment3StarterTest {
 		assertThat("", var10, instanceOf(IdentExpr.class));
 		assertEquals("a", var10.getText());
 	}
-
+	
 	@DisplayName("test13")
 	@Test
 	public void test13(TestInfo testInfo) throws Exception {
@@ -631,7 +633,7 @@ class Assignment3StarterTest {
 		assertThat("", var5, instanceOf(StringLitExpr.class));
 		assertEquals("c == false", ((StringLitExpr) var5).getValue());
 	}
-
+	
 	@DisplayName("test14")
 	@Test
 	public void test14(TestInfo testInfo) throws Exception {
@@ -652,33 +654,43 @@ class Assignment3StarterTest {
 		assertEquals(0, params.size());
 		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
 		assertEquals(3, decsAndStatements.size());
+		
 		ASTNode var0 = decsAndStatements.get(0);
 		assertThat("", var0, instanceOf(VarDeclaration.class));
+		
 		NameDef var1 = ((VarDeclaration) var0).getNameDef();
 		assertThat("", var1, instanceOf(NameDef.class));
 		assertEquals(Type.INT, ((NameDef) var1).getType());
 		assertEquals("a", ((NameDef) var1).getName());
+		
 		ASTNode var2 = decsAndStatements.get(1);
 		assertThat("", var2, instanceOf(ReadStatement.class));
 		assertEquals("a", ((ReadStatement) var2).getName());
 		assertNull(((ReadStatement) var2).getSelector());
+		
 		Expr var3 = ((ReadStatement) var2).getSource();
 		assertThat("", var3, instanceOf(ConsoleExpr.class));
+		
 		ASTNode var4 = decsAndStatements.get(2);
 		assertThat("", var4, instanceOf(WriteStatement.class));
+		
 		Expr var5 = ((WriteStatement) var4).getSource();
 		assertThat("", var5, instanceOf(BinaryExpr.class));
 		assertEquals(PLUS, ((BinaryExpr) var5).getOp().getKind());
+		
 		Expr var6 = ((BinaryExpr) var5).getLeft();
 		assertThat("", var6, instanceOf(IdentExpr.class));
 		assertEquals("a", var6.getText());
+		
 		Expr var7 = ((BinaryExpr) var5).getRight();
 		assertThat("", var7, instanceOf(IntLitExpr.class));
 		assertEquals(1, ((IntLitExpr) var7).getValue());
+		
 		Expr var8 = ((WriteStatement) var4).getDest();
 		assertThat("", var8, instanceOf(ConsoleExpr.class));
+		
 	}
-
+	
 	@DisplayName("test15")
 	@Test
 	public void test15(TestInfo testInfo) throws Exception {
@@ -734,6 +746,7 @@ class Assignment3StarterTest {
 		assertEquals(0, params.size());
 		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
 		assertEquals(4, decsAndStatements.size());
+		
 		ASTNode var0 = decsAndStatements.get(0);
 		assertThat("", var0, instanceOf(VarDeclaration.class));
 		NameDef var1 = ((VarDeclaration) var0).getNameDef();
@@ -790,7 +803,7 @@ class Assignment3StarterTest {
 		});
 		show("Expected SyntaxException:     " + e);
 	}
-
+	
 	@DisplayName("test18")
 	@Test
 	public void test18(TestInfo testInfo) throws Exception {
@@ -808,5 +821,441 @@ class Assignment3StarterTest {
 		});
 		show("Expected LexicalException:     " + e);
 	}
-*/
+	///////// public test cases /////////////////
+	@DisplayName("testDimParameter")
+	@Test
+	public void testDimParameter(TestInfo testInfo) throws Exception {
+		String input = """
+				void f(image[100,200] i,  image[2+3, 4/(6-4)] j)
+
+				""";
+		show("-------------");
+		show(input);
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.VOID, ((Program) ast).getReturnType());
+		List<NameDef> params = ((Program) ast).getParams();
+		assertEquals(2, params.size());
+
+		ASTNode param1 = params.get(0);
+		assertThat("", param1, instanceOf(NameDef.class));
+		assertThat("", param1, instanceOf(NameDefWithDim.class));
+		assertEquals(Type.IMAGE, ((NameDefWithDim)param1).getType());
+		assertEquals("i", ((NameDefWithDim)param1).getName());
+
+		ASTNode param2 = params.get(1);
+		assertThat("", param2, instanceOf(NameDef.class));
+		assertThat("", param2, instanceOf(NameDefWithDim.class));
+		assertEquals(Type.IMAGE, ((NameDefWithDim) param2).getType());
+		assertThat("", ((NameDefWithDim)param2).getDim().getWidth(), instanceOf(BinaryExpr.class));
+		assertThat("", ((NameDefWithDim)param2).getDim().getHeight(), instanceOf(BinaryExpr.class));
+		assertEquals("j", ((NameDefWithDim)param2).getName());
+	}
+	
+	@DisplayName("testOrProgram")
+	@Test
+	public void testOrProgram(TestInfo testInfo) throws Exception {
+		String input = """
+				void f()
+					boolean y = x | z;
+					^ y; 
+				""";
+		show("--------------");
+		show(input);
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.VOID, ((Program) ast).getReturnType());
+		List<NameDef> params = ((Program) ast).getParams();
+		assertEquals(0, params.size());
+		
+		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+		assertEquals(2, decsAndStatements.size());
+		ASTNode var0 = decsAndStatements.get(0);
+		assertThat("", var0, instanceOf(VarDeclaration.class));
+		NameDef var1 = ((VarDeclaration) var0).getNameDef();
+		assertThat("", var1, instanceOf(NameDef.class));
+		assertEquals(Type.BOOLEAN, ((NameDef) var1).getType());
+		assertEquals("y", ((NameDef) var1).getName());
+		IToken op1 = ((VarDeclaration) var0).getOp();
+		assertEquals(Kind.ASSIGN, op1.getKind());
+		assertEquals("=", op1.getText());
+		Expr expr1 = ((VarDeclaration) var0).getExpr();
+		assertThat("", expr1, instanceOf(BinaryExpr.class));
+		assertEquals(OR, ((BinaryExpr) expr1).getOp().getKind());
+		Expr left1 = ((BinaryExpr) expr1).getLeft();
+		assertThat("", left1, instanceOf(IdentExpr.class));
+		assertEquals("x", left1.getText());
+		Expr right1 = ((BinaryExpr) expr1).getRight();
+		assertThat("", right1, instanceOf(IdentExpr.class));
+		assertEquals("z", right1.getText());
+		
+		ASTNode stat2 = decsAndStatements.get(1);
+		assertThat("", stat2, instanceOf(ReturnStatement.class));
+		Expr expr2 = ((ReturnStatement) stat2).getExpr();
+		assertThat("", expr2, instanceOf(IdentExpr.class));
+		assertEquals("y", expr2.getText());
+	}
+	
+	@DisplayName("testAndProgram")
+	@Test
+	public void testAndProgram(TestInfo testInfo) throws Exception {
+		String input = """
+				void f()
+					boolean y = x & z;
+					^ y; 
+				""";
+		show("--------------");
+		show(input);
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.VOID, ((Program) ast).getReturnType());
+		List<NameDef> params = ((Program) ast).getParams();
+		assertEquals(0, params.size());
+		
+		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+		assertEquals(2, decsAndStatements.size());
+		ASTNode var0 = decsAndStatements.get(0);
+		assertThat("", var0, instanceOf(VarDeclaration.class));
+		NameDef var1 = ((VarDeclaration) var0).getNameDef();
+		assertThat("", var1, instanceOf(NameDef.class));
+		assertEquals(Type.BOOLEAN, ((NameDef) var1).getType());
+		assertEquals("y", ((NameDef) var1).getName());
+		IToken op1 = ((VarDeclaration) var0).getOp();
+		assertEquals(Kind.ASSIGN, op1.getKind());
+		assertEquals("=", op1.getText());
+		Expr expr1 = ((VarDeclaration) var0).getExpr();
+		assertThat("", expr1, instanceOf(BinaryExpr.class));
+		assertEquals(AND, ((BinaryExpr) expr1).getOp().getKind());
+		Expr left1 = ((BinaryExpr) expr1).getLeft();
+		assertThat("", left1, instanceOf(IdentExpr.class));
+		assertEquals("x", left1.getText());
+		Expr right1 = ((BinaryExpr) expr1).getRight();
+		assertThat("", right1, instanceOf(IdentExpr.class));
+		assertEquals("z", right1.getText());
+		
+		ASTNode stat2 = decsAndStatements.get(1);
+		assertThat("", stat2, instanceOf(ReturnStatement.class));
+		Expr expr2 = ((ReturnStatement) stat2).getExpr();
+		assertThat("", expr2, instanceOf(IdentExpr.class));
+		assertEquals("y", expr2.getText());
+	}
+	
+	@DisplayName("testComparisonProgram")
+	@Test
+	public void testComparisonProgram(TestInfo testInfo) throws Exception {
+		String input = """
+				void f()
+					boolean y = x == z;
+					^ y; 
+				""";
+		show("--------------");
+		show(input);
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.VOID, ((Program) ast).getReturnType());
+		List<NameDef> params = ((Program) ast).getParams();
+		assertEquals(0, params.size());
+		
+		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+		assertEquals(2, decsAndStatements.size());
+		ASTNode var0 = decsAndStatements.get(0);
+		assertThat("", var0, instanceOf(VarDeclaration.class));
+		NameDef var1 = ((VarDeclaration) var0).getNameDef();
+		assertThat("", var1, instanceOf(NameDef.class));
+		assertEquals(Type.BOOLEAN, ((NameDef) var1).getType());
+		assertEquals("y", ((NameDef) var1).getName());
+		IToken op1 = ((VarDeclaration) var0).getOp();
+		assertEquals(Kind.ASSIGN, op1.getKind());
+		assertEquals("=", op1.getText());
+		Expr expr1 = ((VarDeclaration) var0).getExpr();
+		assertThat("", expr1, instanceOf(BinaryExpr.class));
+		assertEquals(EQUALS, ((BinaryExpr) expr1).getOp().getKind());
+		Expr left1 = ((BinaryExpr) expr1).getLeft();
+		assertThat("", left1, instanceOf(IdentExpr.class));
+		assertEquals("x", left1.getText());
+		Expr right1 = ((BinaryExpr) expr1).getRight();
+		assertThat("", right1, instanceOf(IdentExpr.class));
+		assertEquals("z", right1.getText());
+		
+		ASTNode stat2 = decsAndStatements.get(1);
+		assertThat("", stat2, instanceOf(ReturnStatement.class));
+		Expr expr2 = ((ReturnStatement) stat2).getExpr();
+		assertThat("", expr2, instanceOf(IdentExpr.class));
+		assertEquals("y", expr2.getText());
+	}
+
+	@DisplayName("testStatementWithPixel")
+	@Test
+	public void testStatemenWithPixel(TestInfo testInfo) throws Exception {
+		String input = """
+				void f(int a)
+					int y;
+					int z;
+					y [ 1, 2 ] <- z [ 2, 1 ];
+					^ y;
+				""";
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.VOID, ((Program) ast).getReturnType());
+		List<ASTNode> decsAndStats = ((Program) ast).getDecsAndStatements();
+		assertEquals(4, decsAndStats.size());
+		ASTNode stat2 = decsAndStats.get(2);
+		assertThat("", stat2, instanceOf(ReadStatement.class));
+		String name = ((ReadStatement) stat2).getName();
+		assertEquals("y", name);
+		PixelSelector selector = ((ReadStatement) stat2).getSelector();
+		assertThat("", selector, instanceOf(PixelSelector.class));
+		assertEquals("1", selector.getX().getText());
+		assertEquals("2", selector.getY().getText());
+		
+	}
+
+       // pretty sure this should be invalid
+	@DisplayName("testInvalidStatement1")
+	@Test
+	public void testInvalidStatement1(TestInfo testInfo) throws Exception {
+		String input = """
+				void f()
+					a * b;
+				""";
+		show("-------------");
+		show(input);
+		Exception e = assertThrows(SyntaxException.class, () -> {
+			@SuppressWarnings("unused")
+			ASTNode ast = getAST(input);
+		});
+		show("Expected LexicalException:     " + e);
+	}
+
+	@DisplayName("testInvalidStatement2")
+	@Test
+	public void testInvalidStatement2(TestInfo testInfo) throws Exception {
+		String input = """
+				void f()
+					[1, 1] = [2,2];
+				""";
+		show("-------------");
+		show(input);
+		Exception e = assertThrows(SyntaxException.class, () -> {
+			@SuppressWarnings("unused")
+			ASTNode ast = getAST(input);
+		});
+		show("Expected LexicalException:     " + e);
+	}
+	
+	@DisplayName("testInvalidProgram1")
+	@Test
+	public void testInvalidProgram1(TestInfo testInfo) throws Exception {
+		String input = """
+				void +()
+					int a;
+				""";
+		show("-------------");
+		show(input);
+		Exception e = assertThrows(SyntaxException.class, () -> {
+			@SuppressWarnings("unused")
+			ASTNode ast = getAST(input);
+		});
+		show("Expected LexicalException:     " + e);
+	}
+
+	@DisplayName("testInvalidProgram2")
+	@Test
+	public void testInvalidProgram2(TestInfo testInfo) throws Exception {
+		String input = """
+				+ f()
+					int a;
+				""";
+		show("-------------");
+		show(input);
+		Exception e = assertThrows(SyntaxException.class, () -> {
+			@SuppressWarnings("unused")
+			ASTNode ast = getAST(input);
+		});
+		show("Expected LexicalException:     " + e);
+	}
+	
+	@DisplayName("Mutliple Programs")
+	@Test
+	public void Test1(TestInfo testInfo) throws Exception {
+	  String input = """
+	        void foo()
+	        int a;
+	        float faz();""";
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+
+	@DisplayName("Bad Params")
+	@Test
+	public void Test2(TestInfo testInfo) throws Exception {
+	  String input = """
+	        void foo(int a, boolean b,)
+	        """;
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+
+	@DisplayName("Void Params")
+	@Test
+	public void Test3(TestInfo testInfo) throws Exception {
+	  String input = """
+	        void foo(int a, void b)
+	        """;
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+	
+	@DisplayName("Void Name")
+	@Test
+	public void Test4(TestInfo testInfo) throws Exception {
+	  String input = """
+	        void foo()
+	        void a = 2;
+	        """;
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+
+	@DisplayName("Console Return type")
+	@Test
+	public void Test5(TestInfo testInfo) throws Exception {
+	  String input = """
+	        console foo()
+	        void a = 2;
+	        """;
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+
+	@DisplayName("Console type")
+	@Test
+	public void Test6(TestInfo testInfo) throws Exception {
+	  String input = """
+	        int foo()
+	        console x;
+	        """;
+	  show("-------------");
+	  show(input);
+	  Exception e = assertThrows(SyntaxException.class, () -> {
+	     @SuppressWarnings("unused")
+	     ASTNode ast = getAST(input);
+	  });
+	  show("Expected SyntaxException:     " + e);
+	}
+
+	@DisplayName("Token after return")
+	@Test
+	public void Test7(TestInfo testInfo) throws Exception {
+	  String input = """
+	        int progWithReturnStatement0() ^ 0;
+	        int a = 0;
+	        """;
+	  show("-------------");
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  show(ast);
+	  assertThat("", ast, instanceOf(Program.class));
+	  assertEquals(Type.INT, ((Program) ast).getReturnType());
+	  List<NameDef> params = ((Program) ast).getParams();
+	  assertEquals(0, params.size());
+	  List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+	  assertEquals(2, decsAndStatements.size());
+	  ASTNode var0 = decsAndStatements.get(0);
+	  assertThat("", var0, instanceOf(ReturnStatement.class));
+	  Expr var1 = ((ReturnStatement) var0).getExpr();
+	  assertThat("", var1, instanceOf(IntLitExpr.class));
+	  assertEquals(0, ((IntLitExpr) var1).getValue());
+
+	  ASTNode var2 = decsAndStatements.get(1);
+	  assertThat("", var2, instanceOf(VarDeclaration.class));
+	  NameDef var3 = ((VarDeclaration) var2).getNameDef();
+	  assertThat("", var3, instanceOf(NameDef.class));
+	  assertEquals(Type.INT, ((NameDef) var3).getType());
+	  assertEquals("a", ((NameDef) var3).getName());
+	}
+
+	@DisplayName("ColorConst")
+	@Test
+	public void ColorConst(TestInfo testInfo) throws Exception {
+	  String input = """
+	        void foo()
+	        ^BLACK;
+	        ^BLUE;
+	        ^CYAN;
+	        ^DARK_GRAY;
+	        ^GRAY;
+	        ^GREEN;
+	        ^LIGHT_GRAY;
+	        ^MAGENTA;
+	        ^ORANGE;
+	        ^PINK;
+	        ^RED;
+	        ^WHITE;
+	        ^YELLOW;
+	                   
+	                   
+	                   
+	                   
+	        """;
+	  show("-------------");
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  show(ast);
+	  assertThat("", ast, instanceOf(Program.class));
+	  assertEquals(Type.VOID, ((Program) ast).getReturnType());
+	  List<NameDef> params = ((Program) ast).getParams();
+	  assertEquals(0, params.size());
+
+	  List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+	  assertEquals(13, decsAndStatements.size());
+
+	  String[] colors = {"BLACK", "BLUE", "CYAN", "DARK_GRAY", "GRAY", "GREEN", "LIGHT_GRAY", "MAGENTA", "ORANGE", "PINK",
+	        "RED", "WHITE", "YELLOW"};
+
+
+	  for (int i = 0; i < 13; ++i) {
+
+
+	     ASTNode var0 = decsAndStatements.get(i);
+	     assertThat("", var0, instanceOf(ReturnStatement.class));
+	     Expr var1 = ((ReturnStatement) var0).getExpr();
+	     assertThat("", var1, instanceOf(ColorConstExpr.class));
+	     assertEquals(colors[i], ((ColorConstExpr) var1).getText());
+	  }
+	}
+
+
+
+
 }

@@ -264,6 +264,10 @@ public class LexerClass implements ILexer{
 				{
 					int startPos = col-1; 
 					switch (c) {
+						case ' '->{
+							src += ' '; 
+							pos++; 
+						}
 						case '"'->{
 							if(_input.charAt(pos+1) != '"' && _input.charAt(pos-1) != '\\')
 							{
@@ -304,6 +308,7 @@ public class LexerClass implements ILexer{
 						}
 						else {
 							kind = Kind.IDENT; 
+							
 							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
 							state = State.START;
 							col += src.length(); 
@@ -408,7 +413,7 @@ public class LexerClass implements ILexer{
 						case ' ', '\t', '\n', '\r'->{
 							kind = Kind.MINUS; 
 						}
-						default->{throw new IllegalStateException("invalid char after '='");}
+						default->{kind = Kind.MINUS;}
 					}
 					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
 					state = State.START; 

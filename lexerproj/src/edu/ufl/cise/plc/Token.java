@@ -30,7 +30,13 @@ public class Token implements IToken {
 				src = src.substring(1, src.length()); 
 			}
 		}
-		
+		if(Character.isLetter(src.charAt(0)))
+		{
+			if(!Character.isLetter(src.charAt(src.length()-1)))
+			{
+				src = src.substring(0,src.length()-1); 
+			}
+		}
 		return src;
 	}
 
@@ -137,7 +143,6 @@ public class Token implements IToken {
 		{
 			ret = ret.substring(0, ret.length()-1); 
 		}
-		
 		return ret; 
 	}
 	

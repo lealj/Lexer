@@ -5,6 +5,7 @@ import java.util.List;
 
 import edu.ufl.cise.plc.IToken.Kind;
 import edu.ufl.cise.plc.ast.ASTNode;
+import edu.ufl.cise.plc.ast.AssignmentStatement;
 import edu.ufl.cise.plc.ast.BinaryExpr;
 import edu.ufl.cise.plc.ast.BooleanLitExpr;
 import edu.ufl.cise.plc.ast.ColorExpr;
@@ -19,12 +20,17 @@ import edu.ufl.cise.plc.ast.NameDef;
 import edu.ufl.cise.plc.ast.NameDefWithDim;
 import edu.ufl.cise.plc.ast.PixelSelector;
 import edu.ufl.cise.plc.ast.Program;
+import edu.ufl.cise.plc.ast.Statement;
+import edu.ufl.cise.plc.ast.ReturnStatement;
+import edu.ufl.cise.plc.ast.ReadStatement;
 import edu.ufl.cise.plc.ast.StringLitExpr;
 import edu.ufl.cise.plc.ast.Types.Type;
 import edu.ufl.cise.plc.ast.UnaryExpr;
 import edu.ufl.cise.plc.ast.UnaryExprPostfix;
 import edu.ufl.cise.plc.ast.VarDeclaration;
+import edu.ufl.cise.plc.ast.WriteStatement;
 import edu.ufl.cise.plc.ast.ColorConstExpr;
+
 
 public class Parser implements IParser {
 	private int current = 0; 
@@ -97,8 +103,6 @@ public class Parser implements IParser {
 		}
 	}
 	
-	/* Currently passing 0-6*/
-	////////////////////////////////////////////////////////////////////////////////
 	private Program prog() throws SyntaxException {
 		IToken first = peek(); 
 		Type type = null; 
@@ -141,11 +145,37 @@ public class Parser implements IParser {
 					consume(Kind.RPAREN, "r paren2"); 
 				}
 			}
-			//declarations and statements
-			while(peek().getKind() == Kind.TYPE && (next().getKind() == Kind.IDENT || next().getKind()==Kind.LSQUARE))
+			
+			//stmt
+			if(peek().getKind() == Kind.RETURN)
 			{
-				VarDeclaration varDec = varDec(); 
-				decsAndStmts.add(varDec);
+				Statement stmt = stmt(); 
+				decsAndStmts.add(stmt); 
+				if(peek().getKind() != Kind.SEMI)
+				{
+					error("no semi"); 
+				}
+				else {
+					match(Kind.SEMI); 
+				}
+			}
+			//declarations and statements
+			while((peek().getKind() == Kind.RETURN) || (peek().getKind() == Kind.TYPE || peek().getKind() == Kind.IDENT 
+					|| peek().getKind() == Kind.KW_WRITE) && (next().getKind() == Kind.IDENT 
+					|| next().getKind() == Kind.LSQUARE || next().getKind() == Kind.LARROW))
+			{
+				if(peek().getKind() == Kind.TYPE) {
+					VarDeclaration varDec = varDec(); 
+					decsAndStmts.add(varDec);
+				}
+				if(peek().getKind() == Kind.RETURN || peek().getKind() == Kind.IDENT 
+						|| peek().getKind()  == Kind.KW_WRITE)
+				{
+					Statement stmt = stmt();
+					decsAndStmts.add(stmt); 
+					if(match(Kind.SEMI)) {}
+					else{ error("no semi after stmt"); }
+				}
 			}
 		}
 		return new Program(first, type, name, params, decsAndStmts);
@@ -202,7 +232,55 @@ public class Parser implements IParser {
 			consume(Kind.SEMI, "expect ;");
 		}
 		//set op/expr null if... ? 
+		
 		return new VarDeclaration(first, nd, op, expr); 
+	}
+	
+	private Statement stmt() throws SyntaxException {
+		IToken first = peek(); 
+		Expr expr = null; 
+		//Assignment/read
+		if(match(Kind.IDENT))
+		{
+			PixelSelector pix = null; 
+			if(match(Kind.LSQUARE))
+			{
+				//pixel selector
+				Expr x = expr(); 
+				consume(Kind.COMMA, "coma"); 
+				Expr y = expr(); 
+				consume(Kind.RSQUARE, "rsquare"); 
+				pix = new PixelSelector(first, x, y); 
+			}
+			
+			if(match(Kind.ASSIGN))
+			{
+				String name = first.getText(); 
+				expr = expr(); 
+				return new AssignmentStatement(first, name, pix, expr); 
+			}
+			else if(match(Kind.LARROW))
+			{
+				String name = first.getText(); 
+				expr = expr(); 
+				return new ReadStatement(first, name, pix, expr); 
+			}
+		}
+		else if(match(Kind.KW_WRITE))
+		{
+			expr = expr(); 
+			if(match(Kind.RARROW))
+			{
+				Expr exprRight = expr(); 
+				return new WriteStatement(first, expr, exprRight); 
+			}
+		}
+		else if(match(Kind.RETURN))
+		{
+			expr = expr();
+			return new ReturnStatement(first, expr); 
+		}
+		return null; 
 	}
 	
 	private Dimension dim() throws SyntaxException {
@@ -250,6 +328,7 @@ public class Parser implements IParser {
 		if(match(Kind.KW_ELSE))
 		{
 			falseCase = expr(); 
+			match(Kind.KW_FI); 
 		}
 		
 		return new ConditionalExpr(firstToken, condition, trueCase, falseCase);
