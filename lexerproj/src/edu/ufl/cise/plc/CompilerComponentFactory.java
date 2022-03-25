@@ -13,5 +13,8 @@ public class CompilerComponentFactory {
 	public static ILexer getLexer(String input){
 		return new LexerClass(input); 
 	}
+	public static TypeCheckVisitor getTypeChecker() {
+		return new TypeCheckVisitor();
+	}
 	
 }

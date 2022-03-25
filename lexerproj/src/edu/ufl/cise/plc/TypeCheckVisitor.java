@@ -2,8 +2,6 @@ package edu.ufl.cise.plc;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import edu.ufl.cise.plc.IToken.Kind;
 import edu.ufl.cise.plc.ast.ASTNode;
 import edu.ufl.cise.plc.ast.ASTVisitor;
@@ -62,14 +60,14 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
 		stringLitExpr.setType(Type.STRING);
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		return Type.STRING; 
 	}
 	
 	@SuppressWarnings("exports")
 	@Override
 	public Object visitIntLitExpr(IntLitExpr intLitExpr, Object arg) throws Exception {
 		intLitExpr.setType(Type.INT);
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		return Type.INT; 
 	}
 
 	@SuppressWarnings("exports")
@@ -83,7 +81,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
 		colorConstExpr.setType(Type.COLOR);
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		return Type.COLOR; 
 	}
 
 	@SuppressWarnings("exports")
@@ -144,7 +142,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
 		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
 		Type resultType = null;
-		
 		switch(op) {//AND, OR, PLUS, MINUS, TIMES, DIV, MOD, EQUALS, NOT_EQUALS, LT, LE, GT,GE 
 			case EQUALS,NOT_EQUALS -> {
 				check(leftType == rightType, binaryExpr, "incompatible types for comparison");
@@ -186,10 +183,12 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
 		String name = identExpr.getText(); 
 		Declaration dec = symbolTable.lookup(name); 
+
 		//check if defined
 		check(dec != null, identExpr, "undef ident " + name); 
+		
 		//check if initialized
-		check(dec.isInitialized(), identExpr, "using uninitialized var"); 
+		check(dec.isInitialized(), identExpr, "using uninitialized var " + name); 
 		
 		identExpr.setDec(dec);
 		Type type = dec.getType();
@@ -244,7 +243,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		//this may not be correct
 		Type targType = dec.getType(); 
 		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
-		
 		if(targType != Type.IMAGE)
 		{
 			//could be != null, am slepe deprived. shouldn't have selector on lhs
@@ -284,14 +282,13 @@ public class TypeCheckVisitor implements ASTVisitor {
 					default->{
 						throw new TypeCheckException(
 							"image w/ selector", 
-							assignmentStatement.getFirstToken().getSourceLoc()) ;
+							assignmentStatement.getFirstToken().getSourceLocation()) ;
 						}
 					}
 				}
 		}
 		return null; 
 	}
-
 
 	private boolean assignCompatible(Type targType, Type exprType) {
 		switch(targType){
@@ -358,21 +355,22 @@ public class TypeCheckVisitor implements ASTVisitor {
 		String name = declaration.getName();
 		boolean inserted = symbolTable.insert(name,declaration);
 		check(inserted, declaration, "variable " + name + "already declared");
-		
 		Expr init = declaration.getExpr();
-		
 		if (init != null) {
 			//infer type of initializer
 			Type initType = (Type) init.visit(this,arg);
 			//if varDec has assign init, rhs -> assignmentStmt compatible rules
-			if(declaration.getOp().getText() == "=")
+			if(declaration.getOp().getStringValue().contains("="))
 			{
 				check(assignCompatible(declaration.getType(), initType), declaration, 
 						"type of expression and declared type do not match");
+				
+				declaration.getExpr().setCoerceTo(declaration.getType());
+				
 				declaration.setInitialized(true);
 			}
 			//if varDec has read init, rhs -> readStmt compatible rules
-			if(declaration.getOp().getText() == "<-")
+			if(declaration.getOp().getStringValue().contains("<-"))
 			{
 				check(initType == Type.CONSOLE || init.getType() == Type.STRING, declaration, "not console"); 
 				declaration.setInitialized(true);
@@ -382,35 +380,54 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 
-
 	@SuppressWarnings("exports")
 	@Override
 	public Object visitProgram(Program program, Object arg) throws Exception {		
-		//TODO:  this method is incomplete, finish it.  
+		//create synthetic vardec to be able to store program name in symbol table. 
+		String name = program.getName(); 
+		IToken first = program.getFirstToken(); 
+		NameDef nameDef = null; 
+		IToken op = null; 
+		Expr expr = null; 
+		VarDeclaration synthDec = new VarDeclaration(first, nameDef, op, expr); 
+		
+		symbolTable.insert(name, synthDec); 
 		
 		//Save root of AST so return type can be accessed in return statements
 		root = program;
 		
+		//check parameters
+		List<NameDef> params = program.getParams(); 
+		for(NameDef nd : params)
+		{
+			nd.setInitialized(true);
+			nd.visit(this, arg);
+		}
 		//Check declarations and statements
 		List<ASTNode> decsAndStatements = program.getDecsAndStatements();
 		for (ASTNode node : decsAndStatements) {
 			node.visit(this, arg);
 		}
+		
 		return program;
 	}
 
 	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
-		
-		throw new UnsupportedOperationException();
+		String name = nameDef.getName();
+		check(symbolTable.insert(name, nameDef), nameDef, "name present"); 
+		return null; 
 	}
 
 	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
-		//TODO:  implement this method
-		throw new UnsupportedOperationException();
+		String name = nameDefWithDim.getName(); 
+		symbolTable.insert(name, nameDefWithDim); 
+		Dimension dim = nameDefWithDim.getDim();
+		visitDimension(dim, arg); 
+		return null; 
 	}
  
 	@SuppressWarnings("exports")

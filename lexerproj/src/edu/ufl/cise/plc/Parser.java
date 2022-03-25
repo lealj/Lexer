@@ -112,7 +112,6 @@ public class Parser implements IParser {
 		if(match(Kind.TYPE) || match(Kind.KW_VOID))
 		{
 			type = Type.toType(tokens.get(current-1).getText()); 
-			
 			if(peek().getKind() == Kind.IDENT)
 			{
 				name = peek().getStringValue(); 
@@ -145,7 +144,6 @@ public class Parser implements IParser {
 					consume(Kind.RPAREN, "r paren2"); 
 				}
 			}
-			
 			//stmt
 			if(peek().getKind() == Kind.RETURN)
 			{
@@ -153,7 +151,15 @@ public class Parser implements IParser {
 				decsAndStmts.add(stmt); 
 				if(peek().getKind() != Kind.SEMI)
 				{
-					error("no semi"); 
+					Kind pek = peek().getKind(); 
+					switch(pek)
+					{
+						case PLUS, MINUS, TIMES, DIV, MOD, AND, OR, LT, GT, EQUALS, 
+						NOT_EQUALS, LE, GE->{
+							
+						}
+						default->{error("no semi"); }
+					}
 				}
 				else {
 					match(Kind.SEMI); 
@@ -377,6 +383,7 @@ public class Parser implements IParser {
 	private Expr comparison() throws SyntaxException {
 		Expr expr = term(); 
 		IToken firstToken = peek(); 
+
 		Kind[] kinds = {Kind.GT, Kind.GE, Kind.LT, Kind.LE}; 
 		while(match(kinds))
 		{
@@ -389,7 +396,7 @@ public class Parser implements IParser {
 
 	private Expr term() throws SyntaxException {
 		Expr e = factor(); 
-		IToken  firstToken = peek(); 
+		IToken firstToken = tokens.get(current-1); 
 		Kind[] kinds = {Kind.MINUS, Kind.PLUS}; 
 		while(match(kinds))
 		{
@@ -406,7 +413,7 @@ public class Parser implements IParser {
 		Kind[] kinds = {Kind.DIV, Kind.TIMES};
 		while(match(kinds)) {
 			IToken op = tokens.get(current-1); 
-			Expr right = factor(); 
+			Expr right = unary(); 
 			e = new BinaryExpr(first, e, op, right);
 		}
 		return e; 
