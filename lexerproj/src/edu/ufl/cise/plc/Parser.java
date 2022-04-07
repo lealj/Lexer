@@ -148,6 +148,7 @@ public class Parser implements IParser {
 			if(peek().getKind() == Kind.RETURN)
 			{
 				Statement stmt = stmt(); 
+				///////////////////////////
 				decsAndStmts.add(stmt); 
 				if(peek().getKind() != Kind.SEMI)
 				{
@@ -173,12 +174,14 @@ public class Parser implements IParser {
 				if(peek().getKind() == Kind.TYPE) {
 					VarDeclaration varDec = varDec(); 
 					decsAndStmts.add(varDec);
+					
 				}
 				if(peek().getKind() == Kind.RETURN || peek().getKind() == Kind.IDENT 
 						|| peek().getKind()  == Kind.KW_WRITE)
 				{
 					Statement stmt = stmt();
 					decsAndStmts.add(stmt); 
+
 					if(match(Kind.SEMI)) {}
 					else{ error("no semi after stmt"); }
 				}
@@ -212,6 +215,9 @@ public class Parser implements IParser {
 				return new NameDefWithDim(first, type, name, dim);
 			}
 
+		}
+		else {
+			throw new SyntaxException("not valid type"); 
 		}
 		return new NameDef(first, type, name); 
 	}
@@ -283,7 +289,10 @@ public class Parser implements IParser {
 		}
 		else if(match(Kind.RETURN))
 		{
+			//we have if here
 			expr = expr();
+	
+			//setting type here does nothing....
 			return new ReturnStatement(first, expr); 
 		}
 		return null; 
@@ -302,6 +311,7 @@ public class Parser implements IParser {
 	@SuppressWarnings("exports")
 	public Expr expr() throws SyntaxException {
 		IToken firstToken = peek(); 
+		
 		if(match(Kind.KW_IF)) {
 			return ifState(); 
 		}
@@ -313,6 +323,7 @@ public class Parser implements IParser {
 		Expr left = null; 
 		Expr right = null; 
 		left = term(); 
+		
 		Kind[] kinds = {Kind.PLUS, Kind.MINUS}; 
 		while(match(kinds))
 		{
@@ -321,14 +332,16 @@ public class Parser implements IParser {
 			right = term(); 
 			left = new BinaryExpr(firstToken, left, op, right); 
 		}
+
 		return left; 
 	}
 	
 	private Expr ifState() throws SyntaxException{
 		IToken firstToken = peek(); 
 		consume(Kind.LPAREN, "lparen"); 
-		Expr condition = expr(); 
+		Expr condition = comparison(); 
 		consume(Kind.RPAREN, "rparen"); 
+
 		Expr trueCase = expr();
 		Expr falseCase = null; 
 		if(match(Kind.KW_ELSE))
@@ -336,8 +349,10 @@ public class Parser implements IParser {
 			falseCase = expr(); 
 			match(Kind.KW_FI); 
 		}
-		
-		return new ConditionalExpr(firstToken, condition, trueCase, falseCase);
+		ConditionalExpr ce = new ConditionalExpr(trueCase.getFirstToken(), 
+				condition, trueCase, falseCase);
+		ce.setType(trueCase.getType());
+		return ce;
 	}
 	
 	private Expr or() throws SyntaxException{
@@ -382,6 +397,7 @@ public class Parser implements IParser {
 	
 	private Expr comparison() throws SyntaxException {
 		Expr expr = term(); 
+
 		IToken firstToken = peek(); 
 
 		Kind[] kinds = {Kind.GT, Kind.GE, Kind.LT, Kind.LE}; 
@@ -389,7 +405,10 @@ public class Parser implements IParser {
 		{
 			Token op = tokens.get(current-1); 
 			Expr right = term(); 
+			expr.setType(Type.INT);
+			right.setType(Type.INT);
 			expr = new BinaryExpr(firstToken, expr, op, right); 
+			expr.setType(Type.BOOLEAN);
 		}
 		return expr;
 	}
@@ -402,6 +421,8 @@ public class Parser implements IParser {
 		{
 			IToken op = tokens.get(current-1);
 			Expr right = factor(); 
+			e.setType(Type.INT);
+			right.setType(Type.INT);
 			e = new BinaryExpr(firstToken, e, op, right); 
 		}
 		return e; 
@@ -425,14 +446,19 @@ public class Parser implements IParser {
 		if(match(kinds)) {
 			IToken op = tokens.get(current-1); 
 			Expr right = unary(); 
-			return new UnaryExpr(first, op, right); 
+			right.setType(Type.INT);
+			right.setCoerceTo(Type.COLOR);
+			UnaryExpr ue = new UnaryExpr(first, op, right);
+			return ue; 
 		}
 		if(next().getKind() == Kind.LSQUARE) { 
 			Expr e = primary();
 			consume(Kind.LSQUARE, "LSQUARE EXPECT"); 
 			Expr x = primary(); 
+			x.setType(Type.INT);
 			consume(Kind.COMMA, "COMMA EXPECT"); 
 			Expr y = primary(); 
+			y.setType(Type.INT);
 			if(match(Kind.RSQUARE))
 			{
 				PixelSelector pix = new PixelSelector(first,x, y);
@@ -450,34 +476,58 @@ public class Parser implements IParser {
 	private Expr primary() throws SyntaxException {
 		IToken first = peek(); 
 		if(match(Kind.BOOLEAN_LIT)) {
-			return new BooleanLitExpr(first); 
+			BooleanLitExpr ble = new BooleanLitExpr(first);
+			ble.setType(Type.BOOLEAN);
+			return ble;
 		}
 		if(match(Kind.INT_LIT))
 		{
-			return new IntLitExpr(first); 
+			IntLitExpr ile = new IntLitExpr(first);
+			ile.setType(Type.INT);
+			return ile; 
 		}
 		if(match(Kind.STRING_LIT)) {
-			return new StringLitExpr(first); 
+			StringLitExpr sle = new StringLitExpr(first);
+			sle.setType(Type.STRING);
+			return sle;
 		}
 		if(match(Kind.FLOAT_LIT)) {
-			return new FloatLitExpr(first); 
+			FloatLitExpr fle = new FloatLitExpr(first);
+			fle.setType(Type.FLOAT);
+			return fle; 
 		}
 		if(match(Kind.IDENT)) {
-			return new IdentExpr(first); 
+			IdentExpr ie = new IdentExpr(first);
+			
+			if(peek().getKind() == Kind.LSQUARE  )
+			{
+				ie.setType(Type.IMAGE);
+			}
+			return ie; 
 		}
 		if(match(Kind.COLOR_CONST))
 		{
-			return new ColorConstExpr(first); 
+			ColorConstExpr cce = new ColorConstExpr(first);
+			cce.setType(Type.COLOR);
+			return cce; 
 		}
 		if(match(Kind.LANGLE))
 		{
 			Expr r = expr(); 
+			r.setType(Type.INT);
 			consume(Kind.COMMA, "comaColor");
+			
 			Expr g = expr(); 
+			g.setType(Type.INT);
 			consume(Kind.COMMA, "comaColor");
+			
 			Expr b = expr(); 
+			b.setType(Type.INT);
 			consume(Kind.RANGLE, "rangle");
-			return new ColorExpr(first, r, g, b); 
+			
+			ColorExpr ce = new ColorExpr(first, r, g, b);
+			ce.setType(Type.COLOR);
+			return ce;
 		}
 		if(match(Kind.KW_CONSOLE))
 		{

@@ -24,6 +24,7 @@ public class Token implements IToken {
 
 	@Override
 	public String getText() {
+		//white space remover
 		if(src.charAt(0) == ' ') {
 			while(src.charAt(0) == ' ')
 			{
@@ -32,11 +33,13 @@ public class Token implements IToken {
 		}
 		if(Character.isLetter(src.charAt(0)))
 		{
-			if(!Character.isLetter(src.charAt(src.length()-1)))
+			if(!Character.isLetter(src.charAt(src.length()-1)) 
+					&& !Character.isDigit(src.charAt(src.length()-1)))
 			{
 				src = src.substring(0,src.length()-1); 
 			}
 		}
+		
 		return src;
 	}
 

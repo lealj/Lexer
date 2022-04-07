@@ -107,7 +107,6 @@ public class LexerClass implements ILexer{
 				}
 				
 			}
-			
 			char c = input_chars[pos]; 
 			strSrc += c; 
 			if(" \t\n\r".contains(String.valueOf(c)) == false)
@@ -308,7 +307,6 @@ public class LexerClass implements ILexer{
 						}
 						else {
 							kind = Kind.IDENT; 
-							
 							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
 							state = State.START;
 							col += src.length(); 
@@ -363,7 +361,7 @@ public class LexerClass implements ILexer{
 				case IN_NUM->{
 					kind = Kind.INT_LIT; 
 					switch(c) {
-						case '0', '1', '2', '3', '5', '6', '7', '8', '9'->{
+						case '0', '1', '2', '3','4', '5', '6', '7', '8', '9'->{
 							pos++; 
 						}
 						case '.'->{
@@ -413,7 +411,10 @@ public class LexerClass implements ILexer{
 						case ' ', '\t', '\n', '\r'->{
 							kind = Kind.MINUS; 
 						}
-						default->{kind = Kind.MINUS;}
+						default->{
+								kind = Kind.MINUS;
+								src = src.substring(0, src.length()-1);
+							}
 					}
 					tokens.add(new Token(kind, src, startPos, src.length(), line, startPos));
 					state = State.START; 
@@ -503,7 +504,6 @@ public class LexerClass implements ILexer{
 		{
 			throw new LexicalException("unused"); 
 		}
-		
 		return tokens.get(tokensIndex-1);
 	}
 

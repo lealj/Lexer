@@ -134,11 +134,11 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return resultType;
 	}
 
-
 	//This method has several cases. Work incrementally and test as you go. 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
 		Kind op = binaryExpr.getOp().getKind();
+
 		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
 		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
 		Type resultType = null;
@@ -148,28 +148,24 @@ public class TypeCheckVisitor implements ASTVisitor {
 				resultType = Type.BOOLEAN;
 			}
 			case PLUS -> {
-				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
-				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
-				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
-				else check(false, binaryExpr, "incompatible types for operator");
+				if(leftType == rightType) resultType = leftType; 
+				else check(false, binaryExpr, "incompatible types for operator1");
 			}
 			case  MINUS -> {
-				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
-				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
-				else check(false, binaryExpr, "incompatible types for operator");
+				if(leftType == rightType) resultType = leftType; 
+				else check(false, binaryExpr, "incompatible types for operator2");
 			}
 			case TIMES -> {
-				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
-				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
-				else check(false, binaryExpr, "incompatible types for operator");
+				if(leftType == rightType) resultType = leftType; 
+				else check(false, binaryExpr, "incompatible types for operator3");
 			}
 			case DIV -> {
-				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
-				else check(false, binaryExpr, "incompatible types for operator");
+				if(leftType == rightType) resultType = leftType; 
+				else check(false, binaryExpr, "incompatible types for operator4");
 			}
 			case LT, LE, GT, GE -> {
-				if (leftType == rightType) resultType = Type.BOOLEAN;
-				else check(false, binaryExpr, "incompatible types for operator");
+				if(leftType == rightType) resultType = leftType; 
+				else check(false, binaryExpr, "incompatible types for operator5");
 			}
 			default -> {
 				throw new Exception("compiler error");
@@ -181,9 +177,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
-		String name = identExpr.getText(); 
+		String name = identExpr.getText();
 		Declaration dec = symbolTable.lookup(name); 
-
 		//check if defined
 		check(dec != null, identExpr, "undef ident " + name); 
 		
@@ -198,13 +193,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws Exception {
+		String name = conditionalExpr.getCondition().getText(); 
+		Type decType = symbolTable.lookup(name).getType();
+		conditionalExpr.getCondition().setType(decType);
 		Type condType = conditionalExpr.getCondition().getType(); 
-		check(condType != Type.BOOLEAN, conditionalExpr, "condition not boolean"); 
+		check(condType == Type.BOOLEAN, conditionalExpr, "condition not boolean"); 
 		
 		Type trueCaseType = conditionalExpr.getTrueCase().getType(); 
 		Type falseCaseType = conditionalExpr.getFalseCase().getType(); 
 		check(trueCaseType == falseCaseType, conditionalExpr, "true type != false type"); 
-		
 		return trueCaseType; 
 	}
 
@@ -213,7 +210,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
 		Type x = dimension.getHeight().getType(); 
 		Type y = dimension.getWidth().getType(); 
-		
 		check(x != Type.INT, dimension, "x != int"); 
 		check(y != Type.INT, dimension, "y != int"); 
 		return x; 
@@ -227,7 +223,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws Exception {
 		Type xType = (Type) pixelSelector.getX().visit(this, arg);
 		check(xType == Type.INT, pixelSelector.getX(), "only ints as pixel selector components");
-		
 		Type yType = (Type) pixelSelector.getY().visit(this, arg);
 		check(yType == Type.INT, pixelSelector.getY(), "only ints as pixel selector components");
 		return null;
@@ -240,17 +235,25 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg) throws Exception {
 		String name = assignmentStatement.getName(); 
 		Declaration dec = symbolTable.lookup(name); 
-		//this may not be correct
 		Type targType = dec.getType(); 
-		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		//not image
 		if(targType != Type.IMAGE)
 		{
+			if(dec != null)
+			{
+				dec.setInitialized(true);
+			}
+			
+			Type exprType = assignmentStatement.getExpr().getType();
 			//could be != null, am slepe deprived. shouldn't have selector on lhs
 			check(assignmentStatement.getSelector() == null, assignmentStatement, "has selector"); 
 			check(assignCompatible(targType, exprType), assignmentStatement, "incompatible"
 					+ " !image"); 
 		}
+		//we have an image
 		else {
+			//there is no pixel selector
+			Type exprType = assignmentStatement.getExpr().getType();
 			if(assignmentStatement.getSelector() == null)
 			{
 				check(assignCompatible(targType, exprType), assignmentStatement, "incompatible"
@@ -264,17 +267,33 @@ public class TypeCheckVisitor implements ASTVisitor {
 					assignmentStatement.getExpr().setCoerceTo(COLORFLOAT);
 				}
 			}
+			//there is a pixel selector
 			else 
 			{
-				Type xType = assignmentStatement.getSelector().getX().getType(); 
-				//check that lhs isn't declared in symbolTable
-				boolean inserted = symbolTable.insert(name, dec);
-				check(inserted, dec, "lhs" + name + "already declared");
-				//check that lhs is IdentExpr/type int
-				check(xType == Type.INT, assignmentStatement, "lhs not int"); 
-				Type yType = assignmentStatement.getSelector().getY().getType();
+				assignmentStatement.getExpr().setCoerceTo(COLOR);
+				//turned 4 failures into errors
+				dec.setInitialized(true); 
+				//Type xType = assignmentStatement.getSelector().getX().getType();
+				assignmentStatement.getSelector().getX().setType(INT); 
+				assignmentStatement.getSelector().getY().setType(INT); 
+	
+				String pix_name_x = assignmentStatement.getSelector().getX().getText(); 
+				String pix_name_y = assignmentStatement.getSelector().getX().getText(); 
+
+				Declaration dec_x = symbolTable.lookup(pix_name_x); 
+				Declaration dec_y = symbolTable.lookup(pix_name_y); 
+				
+				boolean inserted = symbolTable.insert(pix_name_x, dec_x);
+				
+				//this is likely reffering to [x,y] not a
+				check(inserted, dec_x, "lhs" + pix_name_x + "already declared");
+				
+				
+				Type rhs = assignmentStatement.getExpr().getType();
+
 				//check that rhs is color, colorfloat, float, int, and coerced to color 
-				switch(yType)
+				
+				switch(rhs)
 				{
 					case COLOR, COLORFLOAT, FLOAT, INT->{
 						assignmentStatement.getExpr().setCoerceTo(COLOR); 
@@ -284,29 +303,34 @@ public class TypeCheckVisitor implements ASTVisitor {
 							"image w/ selector", 
 							assignmentStatement.getFirstToken().getSourceLocation()) ;
 						}
-					}
 				}
+			}
+				
 		}
 		return null; 
 	}
 
 	private boolean assignCompatible(Type targType, Type exprType) {
+		if(targType == exprType && targType != IMAGE)
+		{
+			return true;
+		}
 		switch(targType){
 			case INT->{
 				switch(exprType) {
-					case FLOAT, COLOR, INT->{return true;}
+					case FLOAT, COLOR->{return true;}
 					default->{return false;}
 				}
 			}
 			case FLOAT->{
 				switch(exprType) {
-					case FLOAT, INT->{return true;}
+					case INT->{return true;}
 					default->{return false;}
 				}
 			}
 			case COLOR->{
 				switch(exprType) {
-					case COLOR, INT->{return true;}
+					case INT->{return true;}
 					default->{return false;}
 				}
 			}
@@ -318,6 +342,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 					default->{return false;}
 				}
 			}
+			
 			default ->{return false;}
 		}
 	}
@@ -341,10 +366,14 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Declaration dec = symbolTable.lookup(name); 
 		check(dec != null, readStatement, "undeclared var " + name); 
 		check(readStatement.getSelector() == null, readStatement, "has pix selector");
-		
 		Type exprType = (Type) readStatement.getSource().visit(this,arg);
 		//check(dec.getType() != exprType, readStatement, "incompatible");
-		check(exprType == Type.CONSOLE || exprType == Type.STRING, readStatement, "not console"); 
+		check(exprType == Type.CONSOLE || exprType == Type.STRING, readStatement, "not console");
+		
+		if(dec.getType() == INT)
+		{	
+			readStatement.getSource().setCoerceTo(dec.getType());
+		}
 		dec.setInitialized(true);
 		return null; 
 	}
@@ -353,23 +382,28 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
 		String name = declaration.getName();
+		//set types for dimension variables if image
+		if(declaration.getType()== Type.IMAGE && declaration.getDim() != null)
+		{
+			declaration.getDim().getHeight().setType(INT);
+			declaration.getDim().getWidth().setType(INT);
+		}
 		boolean inserted = symbolTable.insert(name,declaration);
 		check(inserted, declaration, "variable " + name + "already declared");
 		Expr init = declaration.getExpr();
 		if (init != null) {
 			//infer type of initializer
 			Type initType = (Type) init.visit(this,arg);
-			//if varDec has assign init, rhs -> assignmentStmt compatible rules
+			//if varDec has assign init, r hs -> assignmentStmt compatible rules
 			if(declaration.getOp().getStringValue().contains("="))
 			{
 				check(assignCompatible(declaration.getType(), initType), declaration, 
 						"type of expression and declared type do not match");
 				
 				declaration.getExpr().setCoerceTo(declaration.getType());
-				
 				declaration.setInitialized(true);
 			}
-			//if varDec has read init, rhs -> readStmt compatible rules
+			//if varDec has read init, r hs -> readStmt compatible rules
 			if(declaration.getOp().getStringValue().contains("<-"))
 			{
 				check(initType == Type.CONSOLE || init.getType() == Type.STRING, declaration, "not console"); 
@@ -390,7 +424,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		IToken op = null; 
 		Expr expr = null; 
 		VarDeclaration synthDec = new VarDeclaration(first, nameDef, op, expr); 
-		
 		symbolTable.insert(name, synthDec); 
 		
 		//Save root of AST so return type can be accessed in return statements
@@ -434,6 +467,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitReturnStatement(ReturnStatement returnStatement, Object arg) throws Exception {
 		Type returnType = root.getReturnType();  //This is why we save program in visitProgram.
+		returnStatement.getExpr().setType(returnType);
 		Type expressionType = (Type) returnStatement.getExpr().visit(this, arg);
 		check(returnType == expressionType, returnStatement, "return statement with invalid type");
 		return null;
