@@ -307,6 +307,10 @@ public class LexerClass implements ILexer{
 						}
 						else {
 							kind = Kind.IDENT; 
+							if(c == '(')
+							{
+								src = src.substring(0, src.length()-1); 
+							}
 							tokens.add(new Token(kind, src, pos-src.length(), src.length(), line, col));
 							state = State.START;
 							col += src.length(); 
@@ -352,6 +356,10 @@ public class LexerClass implements ILexer{
 							pos++; col++; 
 						}
 						default->{
+							if(!Character.isDigit(src.charAt(src.length()-1)))
+							{
+								src = src.substring(0, src.length()-1); 
+							}
 							tokens.add(new Token(kind, src,tokenPos, pos-tokenPos, line, col)); 
 							state = State.START; 
 						}

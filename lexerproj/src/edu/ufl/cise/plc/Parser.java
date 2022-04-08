@@ -174,7 +174,6 @@ public class Parser implements IParser {
 				if(peek().getKind() == Kind.TYPE) {
 					VarDeclaration varDec = varDec(); 
 					decsAndStmts.add(varDec);
-					
 				}
 				if(peek().getKind() == Kind.RETURN || peek().getKind() == Kind.IDENT 
 						|| peek().getKind()  == Kind.KW_WRITE)
@@ -269,6 +268,7 @@ public class Parser implements IParser {
 			{
 				String name = first.getText(); 
 				expr = expr(); 
+				
 				return new AssignmentStatement(first, name, pix, expr); 
 			}
 			else if(match(Kind.LARROW))
@@ -332,7 +332,7 @@ public class Parser implements IParser {
 			right = term(); 
 			left = new BinaryExpr(firstToken, left, op, right); 
 		}
-
+		
 		return left; 
 	}
 	
