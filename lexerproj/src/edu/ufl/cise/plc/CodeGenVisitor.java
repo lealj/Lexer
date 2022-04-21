@@ -30,9 +30,6 @@ import edu.ufl.cise.plc.ast.VarDeclaration;
 import edu.ufl.cise.plc.ast.WriteStatement;
 import edu.ufl.cise.plc.runtime.ConsoleIO;
 import edu.ufl.cise.plc.runtime.FileURLIO;
-import edu.ufl.cise.plc.runtime.ImageOps;
-
-import java.awt.image.BufferedImage;
 
 
 @SuppressWarnings("exports")
@@ -64,16 +61,16 @@ public class CodeGenVisitor implements ASTVisitor {
 		}
 		 */
 		//package
-		sb.append("package " + packageName + ";").newline();
+		// sb.append("package " + packageName + ";").newline();
 		
 		//imports
-		sb.append("import "+packageName+".*").semi().newline(); 
-		
 		if(retType == Type.IMAGE)
 		{
 			sb.append("import java.awt.image.BufferedImage").semi().newline();
+			sb.append("import edu.ufl.cise.plc.runtime.FileURLIO").semi().newline(); 
+			
+			sb.append("import edu.ufl.cise.plc.runtime.ConsoleIO").semi().newline(); 
 		}
-		
 		//class dec
 		sb.append("public class " + name + "{").newline(); 
 		//function dec
@@ -118,7 +115,6 @@ public class CodeGenVisitor implements ASTVisitor {
 	
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
-		//handles parameters 
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String type = "";
 		if(nameDef.getType() != Type.STRING)
@@ -142,35 +138,43 @@ public class CodeGenVisitor implements ASTVisitor {
 		String name = declaration.getName();
 		NameDef nd = declaration.getNameDef();
 		String expr = "";
-
 		if(declaration.getExpr() != null)
 		{
 			expr = declaration.getExpr().getText();
 		}
-		// THIS IS WHERE WE ARE
-		System.out.println();
-		if(nd.getType() == Type.IMAGE)
-		{
-			Dimension dim = declaration.getDim(); 
-			if(dim == null)
-			{
-				
-			}
-			else {
-				sb.append("BufferedImage " + name + "= "
-						+ "RuntimeImageIO.readImage(url,width,height)");
-			}
-		}
-		else 
-		{
-			nd.visit(this, arg);
-		}
+		
+		nd.visit(this, arg);
 
 		if(declaration.getOp() != null && nd.getType() != Type.IMAGE)
 		{
 			sb.equal();
 			declaration.getExpr().visit(this, arg);
 			sb.semi().newline();
+		}
+		else if(nd.getType() == Type.IMAGE)
+		{
+			// does not have expr
+			if(declaration.getExpr() == null)
+			{
+				sb.append("BufferedImage a = new BufferedImage"
+						+ "(widthAndHeight,widthAndHeight,BufferedImage.TYPE_INT_RGB);").newline();
+				sb.append("for(int x=0; x<a.getWidth();x++)").newline(); 
+				sb.append("for(int y=0; y<a.getHeight();, y++)").newline();
+				sb.append("ImageOps.setColor(a,x,y,new ColorTuple((x-y),0,(y-x)));");
+			}
+			// has initializser
+			else {
+				Dimension dim = declaration.getDim(); 
+				System.out.println("has initializer");
+				if(dim != null)
+				{
+					sb.append("BufferedImage " + name + " = FileURLIO.readImage(url,width,height);").newline();
+					sb.append("FileURLIO.closeFiles();");	
+				}
+				else {
+					System.out.println("has initial, no dim");
+				}
+			}
 		}
 		else
 		{
@@ -310,7 +314,7 @@ public class CodeGenVisitor implements ASTVisitor {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String op = unaryExpression.getOp().getText(); 
 		String expr = unaryExpression.getExpr().getText(); 
-
+		
 		sb.lparen(); 
 		sb.append(op);
 		sb.append(expr);
@@ -318,12 +322,13 @@ public class CodeGenVisitor implements ASTVisitor {
 		return sb;
 	}
 	
-	// test 3 - not getting visited
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String name = readStatement.getName(); 
+	
 		sb.append(name);
+		System.out.println("SDFSFD 1");
 		sb.equal(); 
 		readStatement.getSource().visit(this, arg);
 		sb.semi();
@@ -342,7 +347,8 @@ public class CodeGenVisitor implements ASTVisitor {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String name = assignmentStatement.getName(); 
 		String val = assignmentStatement.getExpr().getText();
-		System.out.println("SDFSFDSFSFDFS");
+		
+		// stop test from getting here since a is an image. 
 		sb.append(name); 
 		sb.equal();
 		
@@ -370,7 +376,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	
 	@Override
 	public Object visitUnaryExprPostfix(UnaryExprPostfix unaryExprPostfix, Object arg) throws Exception {
-		
+		// TODO Auto-generated method stub
 		return null;
 	}
 	@Override
@@ -378,7 +384,6 @@ public class CodeGenVisitor implements ASTVisitor {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
 	@Override
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
 		// TODO Auto-generated method stub
@@ -392,7 +397,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	}
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-		//colorConstExpr.
+		// TODO Auto-generated method stub
 		return null;
 	}
 	@Override
@@ -415,4 +420,5 @@ public class CodeGenVisitor implements ASTVisitor {
  * code corresponding to that construct.
  * it is convenient if each visit method returns the string builder that htey were passed. 
  */
+
 
