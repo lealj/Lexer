@@ -1,6 +1,5 @@
 package edu.ufl.cise.plc;
 
-import java.io.PrintStream;
 import java.util.List;
 
 import edu.ufl.cise.plc.ast.ASTNode;
@@ -30,6 +29,11 @@ import edu.ufl.cise.plc.ast.UnaryExprPostfix;
 import edu.ufl.cise.plc.ast.VarDeclaration;
 import edu.ufl.cise.plc.ast.WriteStatement;
 import edu.ufl.cise.plc.runtime.ConsoleIO;
+import edu.ufl.cise.plc.runtime.FileURLIO;
+import edu.ufl.cise.plc.runtime.ImageOps;
+
+import java.awt.image.BufferedImage;
+
 
 @SuppressWarnings("exports")
 public class CodeGenVisitor implements ASTVisitor {
@@ -64,12 +68,22 @@ public class CodeGenVisitor implements ASTVisitor {
 		
 		//imports
 		sb.append("import "+packageName+".*").semi().newline(); 
+		
+		if(retType == Type.IMAGE)
+		{
+			sb.append("import java.awt.image.BufferedImage").semi().newline();
+		}
+		
 		//class dec
 		sb.append("public class " + name + "{").newline(); 
 		//function dec
-		if(retType != Type.STRING)
+		if(retType != Type.STRING && retType != Type.IMAGE)
 		{
 			sb.append("public static " + returnType + " apply");
+		}
+		else if(retType == Type.IMAGE)
+		{
+			sb.append("public static BufferedImage apply");
 		}
 		else {
 			sb.append("public static String apply");
@@ -104,6 +118,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
+		//handles parameters 
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String type = "";
 		if(nameDef.getType() != Type.STRING)
@@ -127,14 +142,31 @@ public class CodeGenVisitor implements ASTVisitor {
 		String name = declaration.getName();
 		NameDef nd = declaration.getNameDef();
 		String expr = "";
+
 		if(declaration.getExpr() != null)
 		{
 			expr = declaration.getExpr().getText();
 		}
-		
-		nd.visit(this, arg);
-		
-		if(declaration.getOp() != null)
+		// THIS IS WHERE WE ARE
+		System.out.println();
+		if(nd.getType() == Type.IMAGE)
+		{
+			Dimension dim = declaration.getDim(); 
+			if(dim == null)
+			{
+				
+			}
+			else {
+				sb.append("BufferedImage " + name + "= "
+						+ "RuntimeImageIO.readImage(url,width,height)");
+			}
+		}
+		else 
+		{
+			nd.visit(this, arg);
+		}
+
+		if(declaration.getOp() != null && nd.getType() != Type.IMAGE)
 		{
 			sb.equal();
 			declaration.getExpr().visit(this, arg);
@@ -278,7 +310,7 @@ public class CodeGenVisitor implements ASTVisitor {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String op = unaryExpression.getOp().getText(); 
 		String expr = unaryExpression.getExpr().getText(); 
-		
+
 		sb.lparen(); 
 		sb.append(op);
 		sb.append(expr);
@@ -286,11 +318,11 @@ public class CodeGenVisitor implements ASTVisitor {
 		return sb;
 	}
 	
+	// test 3 - not getting visited
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String name = readStatement.getName(); 
-	
 		sb.append(name);
 		sb.equal(); 
 		readStatement.getSource().visit(this, arg);
@@ -310,7 +342,7 @@ public class CodeGenVisitor implements ASTVisitor {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String name = assignmentStatement.getName(); 
 		String val = assignmentStatement.getExpr().getText();
-		
+		System.out.println("SDFSFDSFSFDFS");
 		sb.append(name); 
 		sb.equal();
 		
@@ -338,7 +370,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	
 	@Override
 	public Object visitUnaryExprPostfix(UnaryExprPostfix unaryExprPostfix, Object arg) throws Exception {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 	@Override
@@ -346,6 +378,7 @@ public class CodeGenVisitor implements ASTVisitor {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
 	@Override
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
 		// TODO Auto-generated method stub
@@ -359,7 +392,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	}
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-		// TODO Auto-generated method stub
+		//colorConstExpr.
 		return null;
 	}
 	@Override

@@ -33,6 +33,7 @@ import edu.ufl.cise.plc.ast.WriteStatement;
 
 import static edu.ufl.cise.plc.ast.Types.Type.*;
 
+@SuppressWarnings("exports")
 public class TypeCheckVisitor implements ASTVisitor {
 
 	SymbolTable symbolTable = new SymbolTable();  
@@ -46,45 +47,36 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 	}
 	
-	//The type of a BooleanLitExpr is always BOOLEAN.  
-	//Set the type in AST Node for later passes (code generation)
-	//Return the type for convenience in this visitor.  
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitBooleanLitExpr(BooleanLitExpr booleanLitExpr, Object arg) throws Exception {
 		booleanLitExpr.setType(Type.BOOLEAN);
 		return Type.BOOLEAN;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
 		stringLitExpr.setType(Type.STRING);
 		return Type.STRING; 
 	}
 	
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitIntLitExpr(IntLitExpr intLitExpr, Object arg) throws Exception {
 		intLitExpr.setType(Type.INT);
 		return Type.INT; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitFloatLitExpr(FloatLitExpr floatLitExpr, Object arg) throws Exception {
 		floatLitExpr.setType(Type.FLOAT);
 		return Type.FLOAT;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
 		colorConstExpr.setType(Type.COLOR);
 		return Type.COLOR; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitConsoleExpr(ConsoleExpr consoleExpr, Object arg) throws Exception {
 		consoleExpr.setType(Type.CONSOLE);
@@ -205,7 +197,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return trueCaseType; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
 		Type x = dimension.getHeight().getType(); 
@@ -215,7 +206,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return x; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	//This method can only be used to check PixelSelector objects on the right hand side of an assignment. 
 	//Either modify to pass in context info and add code to handle both cases, or when on left side
@@ -228,7 +218,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 	
-	@SuppressWarnings("exports")
 	@Override
 	//This method several cases--you don't have to implement them all at once.
 	//Work incrementally and systematically, testing as you go.  
@@ -347,7 +336,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws Exception {
 		Type sourceType = (Type) writeStatement.getSource().visit(this, arg);
@@ -359,7 +347,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
 		String name = readStatement.getName(); 
@@ -378,7 +365,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
 		String name = declaration.getName();
@@ -414,7 +400,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitProgram(Program program, Object arg) throws Exception {		
 		//create synthetic vardec to be able to store program name in symbol table. 
@@ -445,7 +430,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return program;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
 		String name = nameDef.getName();
@@ -453,7 +437,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null; 
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
 		String name = nameDefWithDim.getName(); 
@@ -463,7 +446,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null; 
 	}
  
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitReturnStatement(ReturnStatement returnStatement, Object arg) throws Exception {
 		Type returnType = root.getReturnType();  //This is why we save program in visitProgram.
@@ -473,7 +455,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		return null;
 	}
 
-	@SuppressWarnings("exports")
 	@Override
 	public Object visitUnaryExprPostfix(UnaryExprPostfix unaryExprPostfix, Object arg) throws Exception {
 		Type expType = (Type) unaryExprPostfix.getExpr().visit(this, arg);
