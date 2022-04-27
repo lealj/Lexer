@@ -265,30 +265,30 @@ public class ImageOps {
 		return result;
 	}
 	
-	public static BufferedImage binaryImageScalarOp(OP op, BufferedImage left, float right) {
-		int lwidth = left.getWidth();
-		int lheight = left.getHeight();
-		BufferedImage result = new BufferedImage(lwidth, lheight, BufferedImage.TYPE_INT_RGB);
-		ColorTupleFloat rightColor = new ColorTupleFloat(right);
-		for (int x = 0; x < lwidth; x++) {
-			for (int y = 0; y < lheight; y++) {
-				ColorTupleFloat leftColor = new ColorTupleFloat(ColorTuple.unpack(left.getRGB(x, y)));
-				ColorTupleFloat newColor = binaryTupleOp(op, leftColor, rightColor);
-				result.setRGB(x, y, newColor.pack());
-			}
-		}
-		return result;
-	}
-	
-	
-	public static BufferedImage setAllPixels(BufferedImage image, int val) {
-		ColorTuple c = new ColorTuple(val);
-		for (int x = 0; x < image.getWidth(); x++)
-			for (int y = 0; y < image.getHeight(); y++) {
-				image.setRGB(x, y,  c.pack());
-			}
-		return image;
-	}
+//	public static BufferedImage binaryImageScalarOp(OP op, BufferedImage left, float right) {
+//		int lwidth = left.getWidth();
+//		int lheight = left.getHeight();
+//		BufferedImage result = new BufferedImage(lwidth, lheight, BufferedImage.TYPE_INT_RGB);
+//		ColorTupleFloat rightColor = new ColorTupleFloat(right);
+//		for (int x = 0; x < lwidth; x++) {
+//			for (int y = 0; y < lheight; y++) {
+//				ColorTupleFloat leftColor = new ColorTupleFloat(ColorTuple.unpack(left.getRGB(x, y)));
+//				ColorTupleFloat newColor = binaryTupleOp(op, leftColor, rightColor);
+//				result.setRGB(x, y, newColor.pack());
+//			}
+//		}
+//		return result;
+//	}
+//	
+//	
+//	public static BufferedImage setAllPixels(BufferedImage image, int val) {
+//		ColorTuple c = new ColorTuple(val);
+//		for (int x = 0; x < image.getWidth(); x++)
+//			for (int y = 0; y < image.getHeight(); y++) {
+//				image.setRGB(x, y,  c.pack());
+//			}
+//		return image;
+//	}
 
 	
 //	/**
@@ -300,11 +300,11 @@ public class ImageOps {
 //	 * @param colorComponentVal
 //	 * @return
 //	 */
-	public static BufferedImage makeConstantImage(int width, int height, int colorComponentVal) {
-		BufferedImage image = new BufferedImage(width, height,BufferedImage.TYPE_INT_RGB);
-		return setAllPixels(image,colorComponentVal);
-	}
-	
+//	public static BufferedImage makeConstantImage(int width, int height, int colorComponentVal) {
+//		BufferedImage image = new BufferedImage(width, height,BufferedImage.TYPE_INT_RGB);
+//		return setAllPixels(image,colorComponentVal);
+//	}
+//	
 
 	/**
 	 * Returns a new image that is copy of the given BufferedImage 

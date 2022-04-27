@@ -1015,7 +1015,6 @@ class Assignment3StarterTest {
 		
 	}
 
-       // pretty sure this should be invalid
 	@DisplayName("testInvalidStatement1")
 	@Test
 	public void testInvalidStatement1(TestInfo testInfo) throws Exception {

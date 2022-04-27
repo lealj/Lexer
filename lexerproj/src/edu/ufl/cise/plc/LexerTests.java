@@ -12,7 +12,7 @@ import edu.ufl.cise.plc.IToken.Kind;
 
 public class LexerTests {
 
-	ILexer getLexer(String input) {
+	ILexer getLexer(String input) throws LexicalException {
 		 return CompilerComponentFactory.getLexer(input);
 	}
 	

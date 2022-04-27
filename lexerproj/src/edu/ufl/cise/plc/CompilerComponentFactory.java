@@ -13,7 +13,7 @@ public class CompilerComponentFactory {
 		return new Parser(input); 
 	}
 	//This method will be invoked to get an instance of your lexer.  
-	public static ILexer getLexer(String input){
+	public static ILexer getLexer(String input) throws LexicalException{
 		return new LexerClass(input); 
 	}
 	public static TypeCheckVisitor getTypeChecker() {

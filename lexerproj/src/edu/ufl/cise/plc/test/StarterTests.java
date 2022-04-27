@@ -25,16 +25,20 @@ import edu.ufl.cise.plc.SyntaxException;
 import edu.ufl.cise.plc.TypeCheckException;
 import edu.ufl.cise.plc.TypeCheckVisitor;
 import edu.ufl.cise.plc.ast.ASTNode;
+import edu.ufl.cise.plc.ast.AssignmentStatement;
 import edu.ufl.cise.plc.ast.BinaryExpr;
 import edu.ufl.cise.plc.ast.BooleanLitExpr;
 import edu.ufl.cise.plc.ast.ColorExpr;
 import edu.ufl.cise.plc.ast.Expr;
+import edu.ufl.cise.plc.ast.FloatLitExpr;
 import edu.ufl.cise.plc.ast.IdentExpr;
 import edu.ufl.cise.plc.ast.IntLitExpr;
 import edu.ufl.cise.plc.ast.NameDef;
 import edu.ufl.cise.plc.ast.Program;
 import edu.ufl.cise.plc.ast.ReturnStatement;
 import edu.ufl.cise.plc.ast.Types.Type;
+import edu.ufl.cise.plc.ast.UnaryExpr;
+import edu.ufl.cise.plc.ast.UnaryExprPostfix;
 import edu.ufl.cise.plc.ast.VarDeclaration;
 
 class StarterTests {
@@ -356,6 +360,7 @@ class StarterTests {
 		show(ast);
 		assertThat("", ast, instanceOf(Program.class));
 		assertEquals(Type.BOOLEAN, ((Program) ast).getReturnType());
+		
 		List<NameDef> params = ((Program) ast).getParams();
 		assertEquals(3, params.size());
 		NameDef var0 = params.get(0);
@@ -386,6 +391,7 @@ class StarterTests {
 		assertEquals(Type.INT, var6.getType());
 		assertThat(var6.getCoerceTo(), anyOf(nullValue(), is(var6.getType())));
 		Expr var7 = ((BinaryExpr) var5).getRight();
+		
 		assertThat("", var7, instanceOf(IdentExpr.class));
 		assertEquals("b", var7.getText());
 		assertEquals(Type.INT, var7.getType());
@@ -394,11 +400,668 @@ class StarterTests {
 		assertThat(var5.getCoerceTo(), anyOf(nullValue(), is(var5.getType())));
 		Expr var8 = ((BinaryExpr) var4).getRight();
 		assertThat("", var8, instanceOf(IdentExpr.class));
+		
 		assertEquals("c", var8.getText());
 		assertEquals(Type.INT, var8.getType());
+		
 		assertThat(var8.getCoerceTo(), anyOf(nullValue(), is(var8.getType())));
+		
 		assertEquals(Type.BOOLEAN, var4.getType());
 		assertThat(var4.getCoerceTo(), anyOf(nullValue(), is(var4.getType())));
+		
 	}
+	/////////////////////////////////////////////////////////////////////////
+	@DisplayName("MyTest")
+	@Test
+	public void myTest(TestInfo testInfo) throws Exception{   String input = """
+	        boolean a()
+	       
+	        ^ 3==3 | 2==2;
+	       
+	        """;
+	  ASTNode ast = getAST(input);
+	  checkTypes(ast);
+	  show(ast);
+	}
+	
+	@DisplayName("test11")
+	@Test
+	public void test11(TestInfo testInfo) throws Exception {
+	  String input = """
+	               int a()
+	                  int b;
+	                  int c = b;
+	                  ^ c;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+
+	@DisplayName("test12")
+	@Test
+	public void test12(TestInfo testInfo) throws Exception {
+	  String input = """
+	               int a()
+	                  int b;
+	                  int c = b + 2;
+	                  ^ c;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+	@DisplayName("test13")
+	@Test
+	public void test13(TestInfo testInfo) throws Exception {
+	  String input = """
+	               boolean a()
+	                  boolean b;
+	                  boolean c = (b & true);
+	                  ^ c;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+
+	@DisplayName("test14")
+	@Test
+	public void test14(TestInfo testInfo) throws Exception {
+	  String input = """
+	               boolean a()
+	                  boolean b;
+	                  boolean c = ((b & true) & false);
+	                  ^ c;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+
+	@DisplayName("test15")
+	@Test
+	public void test15(TestInfo testInfo) throws Exception {
+	  String input = """
+	               void a(int size)
+	                  image[size,size] a;
+	                  a[x,y] = <<(x*y) % 255, 0, 0>>;
+	                  int x = 5;
+	                  ^ a;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+	
+	@DisplayName("test16")
+	@Test
+	public void test16(TestInfo testInfo) throws Exception {
+	  String input = """
+	               void z(int size)
+	                  image[size,size] a;
+	                  a[x,y] = <<(x*y) % 255, 0, 0>>;
+	                  x = 5;
+	                  ^ a;
+
+	        """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+	@DisplayName("test17")
+    @Test
+    public void test17(TestInfo testInfo) throws Exception {
+        String input = """
+                    void z(int size)
+                        image[size,size] a;
+                        a[x+1,y] = <<(x*y) % 255, 0, 0>>;
+                        x = 5;
+                        ^ a;
+ 
+                """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+
+	@DisplayName("test18")
+    @Test
+    public void test18(TestInfo testInfo) throws Exception {
+        String input = """
+                    void z(int size)
+                        image[size,size] a;
+                        a[x,y+1] = <<(x*y) % 255, 0, 0>>;
+                        ^ a;
+ 
+                """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+
+	@DisplayName("test19")
+	@Test
+	public void test19(TestInfo testInfo) throws Exception {
+	  String input = """
+	                  image test(int size)
+	                      image[size,size] a;
+	                      int x = 0;
+	                      int y = 0;
+	                      a[x,y] = 5;
+	                      ^ a;
+
+	              """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+
+		@DisplayName("test19b")
+		@Test
+		public void test19b(TestInfo testInfo) throws Exception {
+		  String input = """
+		                  image test(int size)
+		                      image[size,size] a;
+		                      int y = 0;
+		                      a[x,y] = 5;
+		                      ^ a;
+
+		              """;
+		  show("-------------");
+		  show(testInfo.getDisplayName());
+		  show(input);
+		  ASTNode ast = getAST(input);
+		  Exception e = assertThrows(TypeCheckException.class, () -> {
+		     checkTypes(ast);
+		  });
+		  show("Expected TypeCheckException:     " + e);
+		
+		}
+		
+	    @DisplayName("test19c")
+	    @Test
+	    public void test19c(TestInfo testInfo) throws Exception {
+	        String input = """
+	                        image test(int size)
+	                            image[size,size] a;
+	                            a[x,y] = 5;
+	                            ^ a;
+	 
+	                    """;
+	        show("-------------");
+	        show(testInfo.getDisplayName());
+	        show(input);
+	        ASTNode ast = getAST(input);
+	        checkTypes(ast);
+	        List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+	        ASTNode var0 = decsAndStatements.get(1);
+	        Expr var1 = ((AssignmentStatement) var0).getExpr();
+	        assertThat("", var1, instanceOf(IntLitExpr.class));
+	        assertEquals(Type.INT, var1.getType());
+	        assertEquals(Type.COLOR, var1.getCoerceTo());
+	    }
+	   
+	    @DisplayName("test19d")
+	    @Test
+	    public void test19d(TestInfo testInfo) throws Exception {
+	        String input = """
+	                        image test(int size)
+	                            image[size,size] a;
+	                            a[x,y] = 5.0;
+	                            ^ a;
+	 
+	                    """;
+	        show("-------------");
+	        show(testInfo.getDisplayName());
+	        show(input);
+	        ASTNode ast = getAST(input);
+	        checkTypes(ast);
+	        List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+	        ASTNode var0 = decsAndStatements.get(1);
+	        Expr var1 = ((AssignmentStatement) var0).getExpr();
+	        assertThat("", var1, instanceOf(FloatLitExpr.class));
+	        assertEquals(Type.FLOAT, var1.getType());
+	        assertEquals(Type.COLOR, var1.getCoerceTo());
+	    }
+
+
+
+	@DisplayName("test20")
+	@Test
+	public void test20(TestInfo testInfo) throws Exception {
+	  String input = """
+	              image test(int size)
+	                  image[size,size] a;
+	                  a[0,0] = 5;
+	                  ^ a;
+
+	              """;
+	  show("-------------");
+	  show(testInfo.getDisplayName());
+	  show(input);
+	  ASTNode ast = getAST(input);
+	  Exception e = assertThrows(TypeCheckException.class, () -> {
+	     checkTypes(ast);
+	  });
+	  show("Expected TypeCheckException:     " + e);
+	}
+	
+	@DisplayName("test21")
+    @Test
+    public void test21(TestInfo testInfo) throws Exception {
+        String input = """
+            boolean b()
+            ^ if (2 + 3)
+                true
+            else
+                false
+            fi; #type error
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test22")
+    @Test
+    public void test22(TestInfo testInfo) throws Exception {
+        String input = """
+            boolean test22(int a, int b)
+            ^ if (a == b)
+                17
+            else
+                false
+            fi; #type error
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test23")
+    @Test
+    public void test23(TestInfo testInfo) throws Exception {
+        String input = """
+            boolean test23(int a, int b)
+            ^ if (a == b)
+                17
+            else
+                20
+            fi; #type error
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+	   @DisplayName("test21c")
+	   @Test
+	    public void test21c(TestInfo testInfo) throws Exception {
+	        String input = """
+	            boolean b()
+	            ^ if (true)
+	               true
+	            else
+	               false
+	            fi; #type error
+	 
+	                    """;
+	        show("-------------");
+	        show(testInfo.getDisplayName());
+	        show(input);
+	        ASTNode ast = getAST(input);
+	        checkTypes(ast);
+	        
+	     // DECS AND STATEMENTS 
+			List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+			assertEquals(1, decsAndStatements.size());
+			
+			ASTNode returnStatement = decsAndStatements.get(0);
+			Expr conditionalExpr = ((ReturnStatement) returnStatement).getExpr();
+			assertEquals(Type.BOOLEAN, conditionalExpr.getType());        
+	    }
+ 
+	   @DisplayName("test21d")
+	   @Test
+	    public void test21d(TestInfo testInfo) throws Exception {
+	        String input = """
+	            int b()
+	            ^ if (true)
+	               2 + 2
+	            else
+	               3 + 3
+	            fi; #type error
+	 
+	                    """;
+	        show("-------------");
+	        show(testInfo.getDisplayName());
+	        show(input);
+	        ASTNode ast = getAST(input);
+	        checkTypes(ast);
+	        
+	     // DECS AND STATEMENTS 
+			List<ASTNode> decsAndStatements = ((Program)ast).getDecsAndStatements();
+			assertEquals(1, decsAndStatements.size());
+			
+			ASTNode returnStatement = decsAndStatements.get(0);
+			Expr conditionalExpr = ((ReturnStatement) returnStatement).getExpr();
+			assertEquals(Type.INT, conditionalExpr.getType());        
+	    }
+ 
+ 
+ 
+    @DisplayName("test24")
+    @Test
+    public void test24(TestInfo testInfo) throws Exception {
+        String input = """
+                    int test()
+                        int a;
+                        a[x,y] <- "Cannot have pixel selector";
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test25")
+    @Test
+    public void test25(TestInfo testInfo) throws Exception {
+        String input = """
+                    int test()
+                        int a;
+                        a <- 10;
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test26")
+    @Test
+    public void test26(TestInfo testInfo) throws Exception {
+        String input = """
+                    int test()
+                        int a;
+                        a[x,y] = 10;
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test27")
+    @Test
+    public void test27(TestInfo testInfo) throws Exception {
+        String input = """
+                    int test()
+                        int a;
+                        a = "Wrong type";
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test28")
+    @Test
+    public void test28(TestInfo testInfo) throws Exception {
+        String input = """
+                    image test(int size)
+                        image[size,size] a;
+                        a = "Wrong type";
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test29")
+    @Test
+    public void test29(TestInfo testInfo) throws Exception {
+        String input = """
+                    image test(int size)
+                        image[size,size] a;
+                        a[x,y] = "Wrong type";
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test30")
+    @Test
+    public void test30(TestInfo testInfo) throws Exception {
+        String input = """
+                    image test(int size)
+                        image a;
+                        a[x,y] = 10;
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+ 
+    @DisplayName("test31")
+    @Test
+    public void test31(TestInfo testInfo) throws Exception {
+        String input = """
+                    image test(int size)
+                        image[true,10] a;
+                        a[x,y] = 10;
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+    @DisplayName("test32")
+    @Test
+    public void test32(TestInfo testInfo) throws Exception {
+        String input = """
+                    int test()
+                        int[10,10] a;
+                        ^ a;
+ 
+                    """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+    
+    @DisplayName("test34")
+    @Test
+    public void test34(TestInfo testInfo) throws Exception{
+        String input = """
+	                    color BDP1(int size)
+	   			          int Z = 255;
+	   			          image[size,size] a;
+	   			          a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
+	   			          int b = getRed a[size/2, size/2];
+	   				    ^ BLUE * b;
+                        """;
+        show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        checkTypes(ast);
+        List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+        VarDeclaration var0 = (VarDeclaration) decsAndStatements.get(0);
+        assertEquals(Type.INT, var0.getType());
+        assertThat("", var0.getExpr(), instanceOf(IntLitExpr.class));
+        assertEquals(255, var0.getExpr().getFirstToken().getIntValue());
+        AssignmentStatement var1 = (AssignmentStatement) decsAndStatements.get(2);
+        assertEquals(Type.INT, var1.getSelector().getX().getType());
+        assertEquals(Type.INT, var1.getSelector().getY().getType());
+        Expr var2 = var1.getExpr();
+        assertThat("", var2, instanceOf(ColorExpr.class));
+        Expr var3 = ((ColorExpr) var2).getRed();
+        assertThat("", var3, instanceOf(BinaryExpr.class));
+        assertEquals(Type.INT, var3.getType());
+        VarDeclaration var4 = (VarDeclaration) decsAndStatements.get(3);
+        assertThat("", var4.getExpr(), instanceOf(UnaryExpr.class));
+        UnaryExpr var5 = (UnaryExpr) var4.getExpr();
+        assertEquals("getRed", var5.getOp().getText());
+        assertThat("", var5.getExpr(), instanceOf(UnaryExprPostfix.class));
+        ReturnStatement var6 = (ReturnStatement) decsAndStatements.get(4);
+        assertEquals(Type.COLOR, var6.getExpr().getType());
+        BinaryExpr var7 = (BinaryExpr) var6.getExpr();
+        assertEquals(Type.COLOR, var7.getLeft().getType());
+        assertEquals(Type.INT, var7.getRight().getType());
+        assertEquals(Type.COLOR, var7.getRight().getCoerceTo());
+        show(ast);
+        }
+
+    @DisplayName("test35a")
+    @Test
+    public void test35a(TestInfo testInfo) throws Exception{
+    	String input = """
+                void f(int y)
+			    y <- 25;
+                """;
+    	show("-------------");
+        show(testInfo.getDisplayName());
+        show(input);
+        ASTNode ast = getAST(input);
+        Exception e = assertThrows(TypeCheckException.class, () -> {
+            checkTypes(ast);
+        });
+        show("Expected TypeCheckException:     " + e);
+    }
+    
+    
 
 }

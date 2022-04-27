@@ -61,15 +61,13 @@ public class CodeGenVisitor implements ASTVisitor {
 		}
 		 */
 		//package
-		// sb.append("package " + packageName + ";").newline();
+		sb.append("package " + packageName).semi().newline();
 		
 		//imports
 		if(retType == Type.IMAGE)
 		{
+			sb.append("import edu.ufl.cise.plc.runtime.*").semi().newline(); 
 			sb.append("import java.awt.image.BufferedImage").semi().newline();
-			sb.append("import edu.ufl.cise.plc.runtime.FileURLIO").semi().newline(); 
-			
-			sb.append("import edu.ufl.cise.plc.runtime.ConsoleIO").semi().newline(); 
 		}
 		//class dec
 		sb.append("public class " + name + "{").newline(); 
@@ -117,6 +115,7 @@ public class CodeGenVisitor implements ASTVisitor {
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String type = "";
+		//System.out.println("Name Def");
 		if(nameDef.getType() != Type.STRING)
 		{
 			type = nameDef.getType().toString().toLowerCase(); 
@@ -138,6 +137,8 @@ public class CodeGenVisitor implements ASTVisitor {
 		String name = declaration.getName();
 		NameDef nd = declaration.getNameDef();
 		String expr = "";
+
+		
 		if(declaration.getExpr() != null)
 		{
 			expr = declaration.getExpr().getText();
@@ -153,25 +154,34 @@ public class CodeGenVisitor implements ASTVisitor {
 		}
 		else if(nd.getType() == Type.IMAGE)
 		{
-			// does not have expr
+			Dimension dim = declaration.getDim(); 
+			String width = dim.getWidth().getText();
+			String height = dim.getHeight().getText(); 
+			// no initial
 			if(declaration.getExpr() == null)
 			{
-				sb.append("BufferedImage a = new BufferedImage"
-						+ "(widthAndHeight,widthAndHeight,BufferedImage.TYPE_INT_RGB);").newline();
-				sb.append("for(int x=0; x<a.getWidth();x++)").newline(); 
-				sb.append("for(int y=0; y<a.getHeight();, y++)").newline();
-				sb.append("ImageOps.setColor(a,x,y,new ColorTuple((x-y),0,(y-x)));");
+				// no initial, has dim
+				sb.append("BufferedImage " + name + "= new BufferedImage("
+						+ width + "," + height + "," + "BufferedImage.TYPE_INT_RGB);").newline();
+				sb.append("for(int x=0; x<"
+						+ name + ".getWidth();x++)").newline(); 
+				sb.append("for(int y=0; y<"
+						+ name + ".getHeight(); y++)").newline();
+				
+				
+				sb.append("ImageOps.setColor(" + name + ",x,y,");
+				// System.out.println(declaration.get + "DSFS");
 			}
-			// has initializser
+			// has initializser (expr)
 			else {
-				Dimension dim = declaration.getDim(); 
-				System.out.println("has initializer");
+				// has initial, has dim 
 				if(dim != null)
 				{
 					sb.append("BufferedImage " + name + " = FileURLIO.readImage(url,width,height);").newline();
 					sb.append("FileURLIO.closeFiles();");	
 				}
 				else {
+					// no initial, no dim
 					System.out.println("has initial, no dim");
 				}
 			}
@@ -187,17 +197,18 @@ public class CodeGenVisitor implements ASTVisitor {
 	@Override
 	public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
-		String cond = conditionalExpr.getCondition().getText(); 
+		
+		conditionalExpr.getCondition().visit(this, arg);
+
+		//String cond = conditionalExpr.getCondition().get
+		
 		String t = conditionalExpr.getTrueCase().getText(); 
 		String f = conditionalExpr.getFalseCase().getText(); 
 		
-		sb.lparen(); 
-		sb.append(cond);
-		sb.rparen(); 
 		sb.ques(); 
-		sb.append(t);
+		conditionalExpr.getTrueCase().visit(this, arg); 
 		sb.colon(); 
-		sb.append(f); 
+		conditionalExpr.getFalseCase().visit(this, arg); 
 		
 		return sb;
 	}
@@ -205,15 +216,14 @@ public class CodeGenVisitor implements ASTVisitor {
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
-		String left = binaryExpr.getLeft().getText(); 
-		String right = binaryExpr.getRight().getText(); 
-		String op = binaryExpr.getOp().getText(); 
 		
 		sb.lparen(); 
-		sb.append(left);
+		binaryExpr.getLeft().visit(this, arg); 
+		String op = binaryExpr.getOp().getText(); 
 		sb.append(op);
-		sb.append(right); 
+		binaryExpr.getRight().visit(this, arg); 
 		sb.rparen(); 
+		
 		return sb;
 	}
 	
@@ -276,7 +286,8 @@ public class CodeGenVisitor implements ASTVisitor {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String val = intLitExpr.getText(); 
 
-		if(intLitExpr.getCoerceTo() != null && intLitExpr.getCoerceTo() != Type.FLOAT)
+		if(intLitExpr.getCoerceTo() != null && intLitExpr.getCoerceTo() != Type.FLOAT && 
+				intLitExpr.getType() != Type.INT)
 		{
 			String castTo = intLitExpr.getCoerceTo().toString().toLowerCase(); 
 			sb.cast(castTo); 
@@ -289,7 +300,8 @@ public class CodeGenVisitor implements ASTVisitor {
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
 		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
 		String val = identExpr.getText(); 
-		
+
+		//System.out.println("Ident Expr");
 		if(identExpr.getCoerceTo() != null && identExpr.getCoerceTo() != Type.FLOAT)
 		{
 			String castTo = identExpr.getCoerceTo().toString(); 
@@ -328,7 +340,6 @@ public class CodeGenVisitor implements ASTVisitor {
 		String name = readStatement.getName(); 
 	
 		sb.append(name);
-		System.out.println("SDFSFD 1");
 		sb.equal(); 
 		readStatement.getSource().visit(this, arg);
 		sb.semi();
@@ -348,14 +359,18 @@ public class CodeGenVisitor implements ASTVisitor {
 		String name = assignmentStatement.getName(); 
 		String val = assignmentStatement.getExpr().getText();
 		
-		// stop test from getting here since a is an image. 
-		sb.append(name); 
-		sb.equal();
+		// check that ident type is not image. 
+		if(assignmentStatement.getTargetDec().getType() != Type.IMAGE)
+		{
+			sb.append(name); 
+			sb.equal();
+			assignmentStatement.getExpr().visit(this, arg);
 		
-		assignmentStatement.getExpr().visit(this, arg);
-		
-		sb.semi().newline(); 
-		
+			sb.semi().newline(); 
+		}
+		else {
+			assignmentStatement.getExpr().visit(this, arg);
+		}
 		return sb;
 	}
 
@@ -392,17 +407,25 @@ public class CodeGenVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws Exception {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 	@Override
 	public Object visitColorExpr(ColorExpr colorExpr, Object arg) throws Exception {
-		// TODO Auto-generated method stub
+		CodeGenStringBuilder sb = (CodeGenStringBuilder) arg; 
+		Expr b = colorExpr.getBlue();
+		
+		String blue = colorExpr.getBlue().getText(); 
+		String red = colorExpr.getRed().getText(); 
+		String green = colorExpr.getGreen().getText(); 
+		
+		sb.append("new ColorTuple(" + red + "," + green + "," + blue + "));").newline();
+		
 		return null;
 	}
 
